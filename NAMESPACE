@@ -1,0 +1,22 @@
+exportClasses(RefNet)
+exportMethods(
+  interactions,
+  providerClasses,
+  providers,
+  show
+  )
+
+export(
+  RefNet,
+  pubmedAbstract,
+  detectDuplicateInteractions,
+  pickBestFromDupGroup
+)
+
+import(BiocGenerics)
+import(IRanges)
+import(AnnotationHub)
+import(RCurl)
+import(PSICQUIC)
+import(methods)
+

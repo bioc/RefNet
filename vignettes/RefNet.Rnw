@@ -1,0 +1,389 @@
+%\VignetteIndexEntry{RefNet}
+%\VignettePackage{RefNet}
+%\VignetteEngine{utils::Sweave}
+
+\documentclass{article}
+
+<<style, eval=TRUE, echo=FALSE, results=tex>>=
+BiocStyle::latex()
+@ 
+
+\newcommand{\exitem}[3]{\item \texttt{\textbackslash#1\{#2\}} #3 \csname#1\endcsname{#2}.}
+\title{RefNet}
+\author{Paul Shannon}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+\Biocpkg{RefNet} allows you to query a large and growing collection of data sources
+to obtain annotated molecular interactions.  Many of these sources are well-known,
+and many of them are from the \href{http://code.google.com/p/psicquic/}{PSCIQUIC}
+collaboration.  Other sources, \emph{native} to this package, are culled from recent publications.
+
+We emphasize that \Biocpkg{RefNet} is a query tool, not a download
+tool.  Molecular interactions are often transient, and frequently
+dependent upon cell-type and biological context.  The rich diversity
+of the interactions returned by RefNet queries should always be
+examined closely for relevance to the actual biological topic being studied.
+To assist in this, RefNet interactions include annotations which describe
+
+\begin{itemize}
+  \item detection method
+  \item interaction type
+  \item publication identifiers
+\end{itemize}
+
+RefNet's query interface (the \Rcode{interactions} method) supports numerous filtering parameters.
+Combined with post-processing tools the package offers, \Biocpkg{RefNet} provides  a 
+curatorial tool for constructing context-specific molecular networks.
+
+\section{Providers: interaction data sources}
+
+What are the currently available interaction data sources (hereafter called \textbf{providers})?
+{\scriptsize
+<<init>>=
+library(RefNet)
+refnet <- RefNet()
+providers(refnet)
+@ 
+}
+  
+The structure of this list reveals the two classes of providers
+currently offered: those which are directly contained in  \Biocpkg{RefNet} and
+those which are obtained  via the \Bioconductor{} package
+\Biocpkg{PSICQUIC}.  The former group (``native'') will in general
+hold smaller, special purpose collections.  New \Biocpkg{PSICQUIC} providers, 
+and new interactions from existing providers become available
+automatically.  Other classes of providers in addition to these two
+may be added as well.
+
+\section{Quick Start: Interactions for \textbf{E2F3}}
+  
+To introduce \Biocpkg{RefNet's} principal function, \Rfunction{interactions}, we 
+will query two providers for interactions with the \emph{E2F3} transcription factor:
+
+\begin{itemize}
+  \item \textbf{gerstein-2012}: transcription factors (TFs) and 
+    their targets, from Architecture of the human regulatory 
+      network derived from ENCODE data\cite{gerstein:2012}, 
+    obained by chromatin immunoprecipitation assay.
+
+  \item \textbf{BioGrid}: ``The Biological General Repository for
+    Interaction Datasets (BioGRID) is a public database that archives
+    and disseminates genetic and protein interaction data from model
+    organisms and humans (thebiogrid.org). BioGRID currently holds
+    over 720,000 interactions curated from both high-throughput
+    datasets and individual focused studies, as derived from over
+    41,000 publications in the primary literature. Complete coverage
+    of the entire literature is maintained for budding yeast
+    (S. cerevisiae), fission yeast (S. pombe) and thale cress
+    (A. thaliana), and efforts to expand curation across multiple
+    metazoan species are underway. Current curation drives are focused
+    on particular areas of biology to enable insights into conserved
+    networks and pathways that are relevant to human health.''
+\end{itemize}
+%\vspace{1em}
+
+The \Rcode{interactions} method has nine arguments, eight of which are optional.
+In practice, one or more (typically three: \Rcode{id}, \Rcode{species},
+\Rcode{provider}) are always used.  For example, to obtain interactions
+for the transcription factor \textbf{E2F3}:
+
+{\scriptsize
+<<e2f3>>=
+tbl <- interactions(refnet, species="9606", id="E2F3", provider=c("gerstein-2012", "BioGrid"))
+dim(tbl)
+@ 
+}
+The full set of arguments, of which all but the first is optional:
+
+\begin{itemize}
+   \item \emph{object} a RefNet instance
+   \item \emph{id=NA}  a list of one or more identifiers
+   \item \emph{species=NA} limit interactions to organisms, described with the NCBI taxonomy codes
+   \item \emph{speciesExclusive=TRUE} force all interactions to be within the specified species
+   \item \emph{type=NA} limit interactions to interaction types
+   \item \emph{provider=NA} limit interactions by providers
+   \item \emph{detectionMethod=NA} limit interactions by detection methods
+   \item \emph{publicationID=NA}
+   \item \emph{quiet=TRUE}
+\end{itemize}
+
+Thus \Biocpkg{RefNet's} \Rfunction{interactions} method is designed for
+focused use in a curatorial mode, in which one
+limits a query by providing values to some or all of these arguments,
+iteratively creating a biologically relevant network of
+interactions, as we will demonstrate below.  One
+\emph{could} retrieve all interactions from all providers by calling
+\Rfunction{interactions} with all defaulted arguments.  This would
+take a very long time, would be a disservice to the PSICQUIC
+providers, and would be of little benefit.  It may be reasonable in 
+some circumstances to retrieve full data sets from the \emph{native}
+providers.  This is demonstrated in their respective man pages.
+
+\section{Query Results: understanding the data.frame}
+
+A \Rcode{data.frame} is returned by the \Rfunction{interactions} method.  Because PSICQUIC
+provides many of the data sources used by \Biocpkg{RefNet}, and because
+the PSI community provide a common results format which was the result of
+much deliberation, \Biocpkg{RefNet}  returns a \Rcode{data.frame} with
+all of the standard PSICQUIC columns, with several (sometimes many) columns added.
+
+Some of these additional columns are copied directly from the provider source data.
+\emph{recon2} for instance, provides metabolic reaction interactions, and characterizes
+each reaction as reversible or not.   If your query providers includes \emph{recon2}
+then you will see this column added to your results.   Other providers report
+other non-PSICQUIC data columns.  \Biocpkg{RefNet} constructs a data.frame which 
+includes the union of all data columns reported by all of the providers, neccessarily
+including many missing values (currently represented in PSICQUIC style, with a `-'').
+
+Four ``entity name'' columns are also added to every results \Rcode{data.frame}, in an 
+attempt to solve -- or at least, to ameliorate -- the ``identifier problem'', in which
+different providers prefer different naming schemes for the interactions they report.
+PSICQUIC providers, most of whom are interested primarily in protein-protein interactions,
+tend to report interaction pairs as interacting proteins, using a variety of
+naming schemes (UniProt.kb, RefSeq, Ensembl, STRING).
+
+Current bioinformatic practice, however, commonly describes protein interactions
+in terms of interactions between the genes which code for the interacting proteins.
+This practice is reflected in the PSICQUIC query convention: gene symbol names
+are used in PSICQUIC queries. 
+
+We support that practice in order to get good results from PSICQUIC
+providers.  For \Biocpkg{RefNet} native sources, we go further, and
+look for query matches against \emph{any} identifier provided by the native
+source: a reaction name, a small molecule metabolite, a protein, gene
+symbol or an entrez geneID.
+
+Furthermore, and crucially, every interaction in the results
+data.frame includes these four extra name columns:
+
+\begin{itemize}
+   \item \textbf{A.common} a familiar, readable name, e.g. ``E2F3'', ``acetyl-coa transport''
+   \item \textbf{B.common} 
+   \item \textbf{A.canonical} a more formal identifier, e.g. ``1871'', ``R\_ACCOAgt''
+   \item \textbf{B.canonical} 
+\end{itemize}
+
+These columns are added to the RefNet native sources as they are parsed into the package.
+You must add them to interactions obtained from RefNet PSICQUIC sources by
+invoking the IDMapper class, from the PSICQUIC package.
+
+{\scriptsize
+<<mapper>>=
+tbl.1 <- interactions(refnet, id="E2F3", provider="IntAct", species="9606")
+dim(tbl.1)
+idMapper <- IDMapper("9606")
+tbl.1 <- addStandardNames(idMapper, tbl.1)
+dim(tbl.1)
+tbl.1[, c("A.common", "B.common", "A.canonical", "B.canonical", "type", "provider")]
+@ 
+}
+
+Mixed queries produce many columns.
+
+
+{\scriptsize
+<<mixedColumns>>=
+tbl.2 <- interactions(refnet, id="ACO2", provider=c("gerstein-2012", "BioGrid"))
+tbl.2 <- addStandardNames(idMapper, tbl.2)
+sort(colnames(tbl.2))
+@ 
+}
+  
+\section{Curation}
+
+Let us now examine more closely the interactions returned from the E2F3
+query above, to demonstrate the curation process \Biocpkg{RefNet} is designed to support.
+
+\subsection{detectionMethod and interaction type}
+
+Of the 54 interactions returned by that query, 10 come from 
+\emph{gerstein-2012} and 44 from  \emph{BioGrid}. 
+
+
+{\scriptsize
+<<explore.e2f3>>=
+dim(tbl)
+table(tbl$provider)
+@ 
+}
+
+With what methods were these interactions detected?
+What interaction types were reported?  Note that twelve of
+the BioGrid interactions were identified in a high-throughput ``two
+hybrid'' experiment, and may deserve less weight than interactions
+from small-scale experiments such as ``western blotting'' and
+``enzymatic study''.
+
+{\scriptsize
+<<xtab>>=
+options(width=180)
+tbl.info <- with(tbl, as.data.frame(table(detectionMethod, type, provider)))
+tbl.info <- tbl.info[tbl.info$Freq>0,]
+tbl.info
+options(width=80)
+@ 
+}
+
+\subsection{Detect and Examine Duplicates}
+
+A query will often return duplicate interactions, either redundant
+reports of the same interaction from the same experiment and published
+paper, or essentially identical interactions between two entities
+discovered and reported more than once.  You will often want to
+eliminate these duplicates as you build out a network.  And, in
+general, you will want to keep the interactions which are most
+reliably reported, which are most specifically observed, and which
+come from from well-regarded experiments.  You may wish to select only
+those interactions which come from small-scale experiments involving a
+cell-type identical with, or similar to, the one you are modeling.
+
+To help with this, \Biocpkg{RefNet} offers two related functions:
+\Rcode{detectDuplicateInteractions} and \Rcode{pickBestFromDupGroup}.
+
+{\scriptsize
+<<dups>>=
+  tbl <- interactions(refnet, species="9606", id="E2F3", provider=c("gerstein-2012", "BioGrid"))
+  tbl <- addStandardNames(idMapper, tbl)
+  tbl.withDups <- detectDuplicateInteractions(tbl)
+@ 
+}
+  
+The last function call adds a ``dupGroup'' column, identifying ten
+groups, each of which has the same two interacting molecules.  The
+``0'' group has special status: it contains unique interactions, of
+which 28 were found. dupGroup number 1 has three interactions:
+
+{\scriptsize
+<<dupGroups>>=
+options(width=180)
+table(tbl.withDups$dupGroup)
+subset(tbl.withDups, dupGroup==1)[, c("A.common", "B.common", "type", "detectionMethod", "publicationID")]
+options(width=80)
+@ 
+}
+  
+We see three interactions in this dupGroup.  Because the pubmed ID is the
+same, and the interacting proteins are the same, albeit ordered
+differently, we surmise that this may just be one interaction between
+\textbf{FZR1} and \textbf{E2F3}.  We prefer the ``enzymatic study'',
+``direct interaction'' version, for the extra specificity they imply,
+but an examination of the abstract of the source publication is often
+helpful:
+
+{\scriptsize
+<<pubmed>>=
+noquote(pubmedAbstract("22580460", split=TRUE))
+@ 
+}
+  
+\textbf{FZR1} is not mentioned in the abstract.  Perhaps an alternate
+name for this gene has been used?  To explore that possibiity, first 
+obtain the entrez geneID, then see what aliases are known for it.
+
+{\scriptsize
+<<alias>>=
+library(org.Hs.eg.db)
+geneID <- unique(subset(tbl, A.common=="FZR1")$A.canonical)
+suppressWarnings(select(org.Hs.eg.db, keys=geneID, columns="ALIAS", keytype="ENTREZID"))
+@ 
+}
+
+Interpreting \textbf{Cdh1} as  \textbf{FZR1}, and based on the text of the abstract,
+we can with high confidence claim that \textbf{FZR1} interacts directly with \textbf{E2F3}
+resulting in its proteasome-dependent degradation: a specific, attested molecular
+interaction likely to be of strong interest. In the next section we demonstrate
+some \Biocpkg{RefNet} function calls which speed up this process of curation.
+
+\subsection{Programmatically Eliminate Duplicates}
+
+A common \Biocpkg{RefNet} scenario is to query all providers for
+interactions with a gene or protein of interest, and then -- the total
+reported interactions being quite large -- programmatically elminate
+all but the most interesting non-redundant interactions.
+
+{\scriptsize
+<<eliminateDups>>=
+providers <- intersect(unlist(providers(refnet), use.names=FALSE),
+                       c("BIND", "BioGrid", "IntAct", "MINT",
+                         "gerstein-2012"))
+tbl <- interactions(refnet, species="9606", id="E2F3", 
+                    provider=providers)
+tbl <- addStandardNames(idMapper, tbl)
+dim(tbl)
+@ 
+}
+
+Duplicate interactions can only be detected if both participating entities
+have canonical names assigned to them.   Some PSICQUIC providers return
+identifiers which \Rcode{addStandardNames} cannot (at the present time)
+map to standard identifiers.  We eliminate interactions involving those
+few identifiers.  A case-by-case ``manual'' study of these interactions
+will sometimes be warranted.
+
+{\scriptsize
+<<eliminateNonCanonicals>>=
+removers <- with(tbl, unique(c(grep("^-$", A.canonical),
+                               grep("^-$", B.canonical))))
+if(length(removers) > 0)
+    tbl <- tbl[-removers,]
+dim(tbl)
+@ 
+}
+In order to distinguish better interactions from worse an
+ordered list of interaction types must be provided.  (For now, this
+is the only ranking criteria we support; detectionMethod and provider
+ranking will be added in the future).  To begin, we must first 
+find out the interaction types present in the current set:
+
+{\scriptsize
+<<pickBestFromDups>>=
+options(width=120)
+table(tbl$type)
+@ 
+}
+
+We are, for now, not interested in interctions of unassigned type (``-'').
+We shall ingore ``colocalization'' as well.
+
+
+{\scriptsize
+<<detectDups>>=
+tbl <- detectDuplicateInteractions(tbl)
+dupGroups <- sort(unique(tbl$dupGroup))
+preferred.types <- c("direct interaction",
+                     "physical association",
+                     "transcription factor binding")
+bestOfDups <- unlist(lapply(dupGroups, function(dupGroup) 
+                         pickBestFromDupGroup(dupGroup, tbl, preferred.types)))
+
+deleters <- which(is.na(bestOfDups))
+if(length(deleters) > 0)
+    bestOfDups <- bestOfDups[-deleters]
+length(bestOfDups)
+tbl.best <- tbl[bestOfDups,]
+tbl.best[, c("A.common", "B.common", "type", "provider", "publicationID")]
+@ 
+}
+
+We thus obtain a high-confidence annotated list of E2F3 interactions.  
+
+%---------------------------------------------------------
+\section{Session info}
+%---------------------------------------------------------
+
+Here is the output of \Rfunction{sessionInfo} on the system on which
+this document was compiled:
+<<sessionInfo, results=tex, print=TRUE, eval=TRUE>>=
+toLatex(sessionInfo())
+@
+
+\bibliography{RefNet}
+
+\end{document}
