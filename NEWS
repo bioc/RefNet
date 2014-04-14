@@ -1,15 +1,15 @@
-VERSION 1.0.0
--------------
+CHANGES IN VERSION 1.0.0
+------------------------
 
-FEATURES
+NEW FEATURES
 
-Two sets of interactions, retrieved automatically from the AnnotationHub, in addition to the many provided by PSICQUIC:
+    o Two sets of interactions, retrieved automatically from the AnnotationHub, in addition to the many provided by PSICQUIC:
 
-    o gerstein-2012:   "Architecture of the human regulatory network derived from ENCODE data", Gerstein et al, pmid 22955619
+        - gerstein-2012:   "Architecture of the human regulatory network derived from ENCODE data", Gerstein et al, pmid 22955619
 
-    o hypoxiaSignaling-2006:  "Hypoxia signalling in cancer and approaches to enforce tumour regression", Pouyssgur et al, pmid 16724055
+        - hypoxiaSignaling-2006:  "Hypoxia signalling in cancer and approaches to enforce tumour regression", Pouyssgur et al, pmid 16724055
 
-These interactions have been expressed in the standard RefNet 19-column format for easy querying.
+    o These interactions have been expressed in the standard RefNet 19-column format for easy querying.
 
     o a.canonical
     o b.canonical
