@@ -19,7 +19,9 @@ stopifnot(file.exists(DESTINATION_DIR))
 runTests <- function()
 {
     test_readData()
-    test_convertComplexInteractionsToStandardColumns()
+    #test_convertComplexInteractionsToStandardColumns()
+    test_convertModifiesInteractionsToStandardColumns()
+    
     #test_convertToStandardColumns()        # canonical geneIDs added also
     #test_fixNonStandardGeneNames()
     
@@ -94,7 +96,6 @@ test_readData <- function()
 #-------------------------------------------------------------------------------
 convertToStandardColumns <- function(tbl)
 {
-    browser()
     tbl.0 <- convertComplexInteractionsToStandardColumns(subset(tbl, interaction=="complexMember"))
     tbl.1 <- convertModifiesInteractionsToStandardColumns(subset(tbl, interaction=="modifies"))
     tbl.2 <- convertProductOfInteractionsToStandardColumns(subset(tbl, interaction=="productOf"))
@@ -260,8 +261,88 @@ test_convertComplexInteractionsToStandardColumns <- function()
 #----------------------------------------------------------------------------------------------------
 convertModifiesInteractionsToStandardColumns <- function(tbl)
 {
+   tokens <- strsplit(tbl$a.orig, "_")
+   a.canonical <- unlist(lapply(tokens, "[", 2))
+   
+   a.common <- unlist(mget(a.canonical, org.Hs.egSYMBOL, ifnotfound=NA), use.names=FALSE)
+   failures <- which(is.na(a.common))
+       # may as well use the unmapped canonical name for common names as well
+   a.common[failures] <- a.canonical[failures]
+   a.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
+   a.canonicalIdType[failures] <- NA
+   relation <- rep("modifies", nrow(tbl))
+   a.cellularComponent <- unlist(lapply(tokens, "[", 4))
 
-}
+   b.canonical <- tbl$b.orig
+   b.canonicalIdType <- rep("recon2ReactionID", nrow(tbl))
+   b.common <- tbl$b.name
+   
+   b.cellularComponent <- rep(NA, nrow(tbl))
+
+   a.organism <- "9606"
+   b.organism <- "9606"
+
+   bidirectional <- rep(FALSE, nrow(tbl))
+   detectionMethod <- rep(NA, nrow(tbl))
+   provider <- rep("recon2", nrow(tbl))
+   comment <- rep(NA, nrow(tbl))
+   
+   cellType <- rep(NA, nrow(tbl))
+   detectionMethod <- rep(NA, nrow(tbl))
+   a.modification <- rep(NA, nrow(tbl))
+   b.modification <- rep(NA, nrow(tbl))
+   pmid <- tbl$pubmed
+
+   return(data.frame(a.canonical=a.canonical,
+                     b.canonical=b.canonical,
+                     relation=relation,
+                     bidirectional=bidirectional,
+                     detectionMethod=detectionMethod,
+                     pmid=pmid,
+                     a.organism=a.organism,
+                     b.organism=b.organism,
+                     a.common=a.common,
+                     a.canonicalIdType=a.canonicalIdType,
+                     b.common=b.common,
+                     b.canonicalIdType=b.canonicalIdType,
+                     cellType=cellType,
+                     a.modification=a.modification,
+                     a.cellularComponent=a.cellularComponent,
+                     b.modification=b.modification,
+                     b.cellularComponent=b.cellularComponent,
+                     provider=provider,
+                     comment=comment,
+                     stringsAsFactors=FALSE))
+
+
+} # convertModifiesInteractionsToStandardColumns
+#----------------------------------------------------------------------------------------------------
+test_convertModifiesInteractionsToStandardColumns <- function()
+{
+    print("--- test_convertModifiesInteractionsToStandardColumns")
+    tbl <- readData()
+
+       # test just 3 complexMember rows to start
+    case.1 <- subset(tbl, interaction=="modifies")[1:3,]
+    tbl.1  <- convertModifiesInteractionsToStandardColumns(case.1)
+    checkEquals(dim(tbl.1), c(3,19))
+    checkEquals(colnames(tbl.1), standardColumns)
+    checkEquals(unique(tbl.1$a.canonicalIdType), "entrezGeneID")
+    checkEquals(unique(tbl.1$b.canonicalIdType), "recon2ReactionID")
+    checkEquals(tbl.1$a.common, c("AOC2", "AOC1", "AOC3"))
+    checkEquals(unique(tbl.1$b.common), "1,3-Diaminopropane:oxygen oxidoreductase (deaminating)")
+    checkEquals(unique(tbl.1$b.canonical), "R_13DAMPPOX")    
+
+      # test the whole table
+    case.2 <- subset(tbl, interaction=="modifies")
+    tbl.2  <- convertModifiesInteractionsToStandardColumns(case.2)
+    checkEquals(dim(tbl.2), c(nrow(tbl.2), length(standardColumns)))
+    checkEquals(as.list(table(tbl.2$a.canonicalIdType)),
+                list(entrezGeneID=9728))
+       # nrow (case.2) - 9728 which have been successfully mapped
+    checkEquals(length(which(is.na(tbl.2$a.canonicalIdType))), 254)
+
+} # test_convertModifiesInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
 convertProductOfInteractionsToStandardColumns <- function(tbl)
 {
@@ -272,12 +353,6 @@ convertSubstrateOfInteractionsToStandardColumns <- function(tbl)
 {
 
 }
-#----------------------------------------------------------------------------------------------------
-test_convertModifiesInteractionsToStandardColumns <- function()
-{
-    print("--- test_convertModifiesInteractionsToStandardColumns")
-
-} # test_convertModifiesInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
 test_convertProductOfInteractionsToStandardColumns <- function()
 {
