@@ -19,49 +19,29 @@ stopifnot(file.exists(DESTINATION_DIR))
 runTests <- function()
 {
     test_readData()
-    #test_convertComplexInteractionsToStandardColumns()
+    test_convertComplexInteractionsToStandardColumns()
     test_convertModifiesInteractionsToStandardColumns()
-    
-    #test_convertToStandardColumns()        # canonical geneIDs added also
-    #test_fixNonStandardGeneNames()
+    test_convertProductOfInteractionsToStandardColumns()
+    test_convertSubstrateOfInteractionsToStandardColumns()
+    test_convertAll()
     
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
 run = function ()
 {
-   runTests()
    tbl <- readData()
-   tbl <- convertToStandardColumns(tbl)
-   tbl <- fixNonStandardGeneNames(tbl)
-   write.table(tbl, file="stamlabTFs-2012.tsv", row.names=FALSE, sep="\t", quote=FALSE)
-    # take a quick look:
-    #   t(tbl[1:2,])
-    #                      1                                      2                                     
-    #  a.canonical         "196"                                  "196"                                 
-    #  b.canonical         "79365"                                "4849"                                
-    #  relation            "transcription factor binding"         "transcription factor binding"        
-    #  bidirectional       "FALSE"                                "FALSE"                               
-    #  detectionMethod     "psi-mi:MI:0606(DNase I footprinting)" "psi-mi:MI:0606(DNase I footprinting)"
-    #  pmid                "22959076"                             "22959076"                            
-    #  a.organism          "9606"                                 "9606"                                
-    #  b.organism          "9606"                                 "9606"                                
-    #  a.common            "AHR"                                  "AHR"                                 
-    #  a.canonicalIdType   "entrezGeneID"                         "entrezGeneID"                        
-    #  b.common            "BHLHE41"                              "CNOT3"                               
-    #  b.canonicalIdType   "entrezGeneID"                         "entrezGeneID"                        
-    #  cellType            "AG10803"                              "AG10803"                             
-    #  a.modification      NA                                     NA                                    
-    #  a.cellularComponent NA                                     NA                                    
-    #  b.modification      NA                                     NA                                    
-    #  b.cellularComponent NA                                     NA                                    
-    #  provider            "stamlabTF"                            "stamlabTF"                           
-    #  comment             NA                                     NA                                    
+   tbl.out <- convertAll(tbl)
+   write.table(tbl.out, file="recon202.tsv", row.names=FALSE, sep="\t", quote=FALSE)
 
     # check the line count, upload to amazon s3, which requires credentials, typically
     #   a pair of access keys in ~/.aws/config
-    # wc -l stamlabTFs-2012.tsv  #  574123
+    # wc -l recon202.tsv  #  48938
     # aws s3 ls s3://refnet-networks
-    # aws s3 cp stamlabTFs-2012.tsv s3://refnet-networks/ --region us-west-1
+    # aws s3 cp recon202.tsv s3://refnet-networks/ --region us-west-1
+
+
+   browser()
+   x <- 99
 
 } # run
 #------------------------------------------------------------------------------------------------------------------------
@@ -94,77 +74,6 @@ test_readData <- function()
     
 } # test_readData
 #-------------------------------------------------------------------------------
-convertToStandardColumns <- function(tbl)
-{
-    tbl.0 <- convertComplexInteractionsToStandardColumns(subset(tbl, interaction=="complexMember"))
-    tbl.1 <- convertModifiesInteractionsToStandardColumns(subset(tbl, interaction=="modifies"))
-    tbl.2 <- convertProductOfInteractionsToStandardColumns(subset(tbl, interaction=="productOf"))
-    tbl.3 <- convertSubstrateOfInteractionsToStandardColumns(subset(tbl, interaction=="substrateOf"))
-    
-    a.organism <- rep("9606", nrow(tbl))
-    b.organism <- rep("9606", nrow(tbl))
-    
-    relation <- rep("transcription factor binding", nrow(tbl))
-    detectionMethod <- rep("psi-mi:MI:0606(DNase I footprinting)", nrow(tbl))
-    pmid <- rep("22959076", nrow(tbl))
-    bidirectional <- rep("FALSE", nrow(tbl))
-    a.modification <- rep(NA, nrow(tbl))
-    b.modification <- rep(NA, nrow(tbl))
-    a.cellularComponent <- rep(NA, nrow(tbl))
-    b.cellularComponent <- rep(NA, nrow(tbl))
-    provider <- rep("stamlabTF", nrow(tbl))
-    comment <- rep(NA, nrow(tbl))
-    a.canonical <- as.character(mget(tbl$a.common, org.Hs.egSYMBOL2EG, ifnotfound=NA))
-    b.canonical <- as.character(mget(tbl$b.common, org.Hs.egSYMBOL2EG, ifnotfound=NA))
-
-    a.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
-    b.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
-
-    tbl <- cbind(tbl,
-                 a.canonical=a.canonical,
-                 b.canonical=b.canonical,
-                 relation=relation,
-                 bidirectional=bidirectional,
-                 detectionMethod=detectionMethod,
-                 pmid=pmid,
-                 a.organism=a.organism,
-                 b.organism=b.organism,
-                 #a.common=a.common,
-                 a.canonicalIdType=a.canonicalIdType,
-                 #b.common=b.common,
-                 b.canonicalIdType=b.canonicalIdType,
-                 #cellType=cellType,
-                 a.modification=a.modification,
-                 a.cellularComponent=a.cellularComponent,
-                 b.modification=b.modification,
-                 b.cellularComponent=b.cellularComponent,
-                 provider=provider,
-                 comment=comment)
-
-     tbl[, standardColumns]
-
-} # convertToStandardColumns
-#-------------------------------------------------------------------------------
-test_convertToStandardColumns <- function()
-{
-    print("--- test_convertToStandardColumns")
-    tbl <- readData()
-    tbl <- convertToStandardColumns(tbl)
-
-    checkEquals(colnames(tbl), standardColumns);
-#    checkTrue(nrow(tbl) == 27277)
-#
-#    checkTrue(all(tbl$a.canonicalIdType %in% recognized.canonical.idTypes))
-#    checkTrue(all(tbl$species=="9606"))
-#    checkTrue(all(tbl$provider=="stamlabTF"))
-#    checkTrue(all(tbl$publicationID=="22959076"))
-#    checkTrue(all(tbl$detectionMethod=="psi-mi:MI:0606(DNase I footprinting)"))
-#
-#    checkEquals(length(which(tbl$a.canonical=="NA")), 222)
-#    checkEquals(length(which(tbl$b.canonical=="NA")), 131)
-    
-} # test_convertToStandardColumns
-#----------------------------------------------------------------------------------------------------
 convertComplexInteractionsToStandardColumns <- function(tbl)
 {
    tokens <- strsplit(tbl$a.orig, "_")
@@ -336,7 +245,7 @@ test_convertModifiesInteractionsToStandardColumns <- function()
       # test the whole table
     case.2 <- subset(tbl, interaction=="modifies")
     tbl.2  <- convertModifiesInteractionsToStandardColumns(case.2)
-    checkEquals(dim(tbl.2), c(nrow(tbl.2), length(standardColumns)))
+    checkEquals(dim(tbl.2), c(nrow(case.2), length(standardColumns)))
     checkEquals(as.list(table(tbl.2$a.canonicalIdType)),
                 list(entrezGeneID=9728))
        # nrow (case.2) - 9728 which have been successfully mapped
@@ -346,112 +255,210 @@ test_convertModifiesInteractionsToStandardColumns <- function()
 #----------------------------------------------------------------------------------------------------
 convertProductOfInteractionsToStandardColumns <- function(tbl)
 {
+   tokens <- strsplit(tbl$a.orig, "_")
+   a.canonical <- unlist(lapply(tokens, "[", 2))
+   
+   a.common <- tbl$a.name
+   a.canonicalIdType <- rep("reconMetabolite", nrow(tbl))
+   relation <- rep("productOf", nrow(tbl))
+   a.cellularComponent <- unlist(lapply(tokens, "[", 3))
 
-}
-#----------------------------------------------------------------------------------------------------
-convertSubstrateOfInteractionsToStandardColumns <- function(tbl)
-{
+   b.canonical <- tbl$b.orig
+   b.canonicalIdType <- rep("recon2ReactionID", nrow(tbl))
+   b.common <- tbl$b.name
+   
+   b.cellularComponent <- rep(NA, nrow(tbl))
 
-}
+   a.organism <- "9606"
+   b.organism <- "9606"
+
+   bidirectional <- tbl$reversible
+   detectionMethod <- rep(NA, nrow(tbl))
+   provider <- rep("recon2", nrow(tbl))
+   comment <- rep(NA, nrow(tbl))
+   
+   cellType <- rep(NA, nrow(tbl))
+   detectionMethod <- rep(NA, nrow(tbl))
+   a.modification <- rep(NA, nrow(tbl))
+   b.modification <- rep(NA, nrow(tbl))
+   pmid <- tbl$pubmed
+
+   return(data.frame(a.canonical=a.canonical,
+                     b.canonical=b.canonical,
+                     relation=relation,
+                     bidirectional=bidirectional,
+                     detectionMethod=detectionMethod,
+                     pmid=pmid,
+                     a.organism=a.organism,
+                     b.organism=b.organism,
+                     a.common=a.common,
+                     a.canonicalIdType=a.canonicalIdType,
+                     b.common=b.common,
+                     b.canonicalIdType=b.canonicalIdType,
+                     cellType=cellType,
+                     a.modification=a.modification,
+                     a.cellularComponent=a.cellularComponent,
+                     b.modification=b.modification,
+                     b.cellularComponent=b.cellularComponent,
+                     provider=provider,
+                     comment=comment,
+                     stringsAsFactors=FALSE))
+
+} # convertProductOfInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
 test_convertProductOfInteractionsToStandardColumns <- function()
 {
     print("--- test_convertProductOfInteractionsToStandardColumns")
+    tbl <- readData()
+
+       # test just 3 productOf rows to start
+    case.1 <- subset(tbl, interaction=="productOf")[1:3,]
+    tbl.1  <- convertProductOfInteractionsToStandardColumns(case.1)
+
+    checkEquals(dim(tbl.1), c(3,19))
+    checkEquals(colnames(tbl.1), standardColumns)
+    checkEquals(unique(tbl.1$a.canonicalIdType), "reconMetabolite")
+    checkEquals(unique(tbl.1$b.canonicalIdType), "recon2ReactionID")
+    checkEquals(tbl.1$a.common,
+                c("10-formyltetrahydrofolate-[Glu](5)",
+                  "10-formyltetrahydrofolate-[Glu](5)",
+                  "10-formyltetrahydrofolate-[Glu](6)"))
+    checkEquals(tbl.1$b.common, c("5-glutamyl-10FTHF transport, lysosomal",
+                                  "5-glutamyl-10FTHF transport, mitochondrial",
+                                  "6-glutamyl-10FTHF transport, lysosomal"))
+    checkEquals(tbl.1$b.canonical, c("R_10FTHF5GLUtl", "R_10FTHF5GLUtm", "R_10FTHF6GLUtl"))
+
+      # test the whole table
+    case.2 <- subset(tbl, interaction=="productOf")
+    tbl.2  <- convertProductOfInteractionsToStandardColumns(case.2)
+    checkEquals(dim(tbl.2), c(nrow(case.2), length(standardColumns)))
+    checkEquals(as.list(table(tbl.2$a.canonicalIdType)), list(reconMetabolite=15863))
+    checkEquals(as.list(table(tbl.2$b.canonicalIdType)), list(recon2ReactionID=15863))
+
 
 } # test_convertProductOfInteractionsToStandardColumns
+#----------------------------------------------------------------------------------------------------
+convertSubstrateOfInteractionsToStandardColumns <- function(tbl)
+{
+   tokens <- strsplit(tbl$a.orig, "_")
+   a.canonical <- unlist(lapply(tokens, "[", 2))
+   
+   a.common <- tbl$a.name
+   a.canonicalIdType <- rep("reconMetabolite", nrow(tbl))
+   relation <- rep("substrateOf", nrow(tbl))
+   a.cellularComponent <- unlist(lapply(tokens, "[", 3))
+
+   b.canonical <- tbl$b.orig
+   b.canonicalIdType <- rep("recon2ReactionID", nrow(tbl))
+   b.common <- tbl$b.name
+   
+   b.cellularComponent <- rep(NA, nrow(tbl))
+
+   a.organism <- "9606"
+   b.organism <- "9606"
+
+   bidirectional <- tbl$reversible
+   detectionMethod <- rep(NA, nrow(tbl))
+   provider <- rep("recon2", nrow(tbl))
+   comment <- rep(NA, nrow(tbl))
+   
+   cellType <- rep(NA, nrow(tbl))
+   a.modification <- rep(NA, nrow(tbl))
+   b.modification <- rep(NA, nrow(tbl))
+   pmid <- tbl$pubmed
+
+   return(data.frame(a.canonical=a.canonical,
+                     b.canonical=b.canonical,
+                     relation=relation,
+                     bidirectional=bidirectional,
+                     detectionMethod=detectionMethod,
+                     pmid=pmid,
+                     a.organism=a.organism,
+                     b.organism=b.organism,
+                     a.common=a.common,
+                     a.canonicalIdType=a.canonicalIdType,
+                     b.common=b.common,
+                     b.canonicalIdType=b.canonicalIdType,
+                     cellType=cellType,
+                     a.modification=a.modification,
+                     a.cellularComponent=a.cellularComponent,
+                     b.modification=b.modification,
+                     b.cellularComponent=b.cellularComponent,
+                     provider=provider,
+                     comment=comment,
+                     stringsAsFactors=FALSE))
+
+} # convertSubstrateOfInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
 test_convertSubstrateOfInteractionsToStandardColumns <- function()
 {
     print("--- test_convertSubstrateOfInteractionsToStandardColumns")
+    tbl <- readData()
+
+       # test just 3 productOf rows to start
+    case.1 <- subset(tbl, interaction=="substrateOf")[1:3,]
+    tbl.1  <- convertSubstrateOfInteractionsToStandardColumns(case.1)
+
+    checkEquals(dim(tbl.1), c(3,19))
+    checkEquals(colnames(tbl.1), standardColumns)
+    checkEquals(unique(tbl.1$a.canonicalIdType), "reconMetabolite")
+    checkEquals(unique(tbl.1$b.canonicalIdType), "recon2ReactionID")
+    checkEquals(tbl.1$a.common,
+                c("10-formyltetrahydrofolate-[Glu](5)",
+                  "10-formyltetrahydrofolate-[Glu](5)",
+                  "10-formyltetrahydrofolate-[Glu](6)"))
+
+    checkEquals(tbl.1$b.common, c("5-glutamyl-10FTHF transport, lysosomal",
+                                  "5-glutamyl-10FTHF transport, mitochondrial",
+                                  "6-glutamyl-10FTHF transport, lysosomal"))
+
+    checkEquals(tbl.1$b.canonical, c("R_10FTHF5GLUtl", "R_10FTHF5GLUtm","R_10FTHF6GLUtl"))
+
+      # test the whole table
+    case.2 <- subset(tbl, interaction=="substrateOf")
+    tbl.2  <- convertSubstrateOfInteractionsToStandardColumns(case.2)
+    checkEquals(dim(tbl.2), c(nrow(case.2), length(standardColumns)))
+    checkEquals(as.list(table(tbl.2$a.canonicalIdType)), list(reconMetabolite=14976))
+    checkEquals(as.list(table(tbl.2$b.canonicalIdType)), list(recon2ReactionID=14976))
 
 } # test_convertSubstrateOfInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
-# four stamlab gene symbols are not (or are no longer) HUGO standard.
-#  HTLF="3344",    # FOXN2
-#  ZFP161="7541",  # ZBTB14
-#  ZNF238="10472", # ZBTB18
-#  INSAF="3637"   # record withdrawn by ncbi, 2008
-fixNonStandardGeneNames <- function(tbl)
+convertAll <- function(tbl)
 {
+    tbl.1 <- subset(tbl, interaction=="substrateOf")
+    tbl.2 <- subset(tbl, interaction=="productOf")
+    tbl.3 <- subset(tbl, interaction=="modifies")
+    tbl.4 <- subset(tbl, interaction=="complexMember")
+
+    tbl.1c <- convertSubstrateOfInteractionsToStandardColumns(tbl.1)
+    tbl.2c <- convertProductOfInteractionsToStandardColumns(tbl.2)
+    tbl.3c <- convertModifiesInteractionsToStandardColumns(tbl.3)
+    tbl.4c <- convertComplexInteractionsToStandardColumns(tbl.4)
+
+    invisible(rbind(tbl.1c, tbl.2c, tbl.3c, tbl.4c))
     
-   htlf.a.hits <- grep("HTLF", tbl$a.common)
-   htlf.b.hits <- grep("HTLF", tbl$b.common)
-
-   if(length(htlf.a.hits) > 0){
-       tbl$a.common[htlf.a.hits] <- "FOXN2"
-       tbl$a.canonical[htlf.a.hits] <- "3344"
-       }
-
-   if(length(htlf.b.hits) > 0){
-       tbl$b.common[htlf.b.hits] <- "FOXN2"
-       tbl$b.canonical[htlf.b.hits] <- "3344"
-       }
-
-   zfp161.a.hits <- grep("ZFP161", tbl$a.common)
-   zfp161.b.hits <- grep("ZFP161", tbl$b.common)
-
-   if(length(zfp161.a.hits) > 0){
-       tbl$a.common[zfp161.a.hits] <- "ZBTB14"
-       tbl$a.canonical[zfp161.a.hits] <- "7541"
-       }
-
-   if(length(zfp161.b.hits) > 0){
-       tbl$b.common[zfp161.b.hits] <- "ZBTB14"
-       tbl$b.canonical[zfp161.b.hits] <- "7541"
-       }
-
-     #  ZNF238="10472", # ZBTB18
-
-   znf238.a.hits <- grep("ZNF238", tbl$a.common)
-   znf238.b.hits <- grep("ZNF238", tbl$b.common)
-
-   if(length(znf238.a.hits) > 0){
-       tbl$a.common[znf238.a.hits] <- "ZBTB18"
-       tbl$a.canonical[znf238.a.hits] <- "10472"
-       }
-
-   if(length(znf238.b.hits) > 0){
-       tbl$b.common[znf238.b.hits] <- "ZBTB18"
-       tbl$b.canonical[znf238.b.hits] <- "10472"
-       }
-
-     #  INSAF="3637" record withdrawn by ncbi, 2008
-   insaf.a.hits <- grep("INSAF", tbl$a.common)
-   insaf.b.hits <- grep("INSAF", tbl$b.common)
-
-   if(length(insaf.a.hits) > 0){
-       tbl$a.canonical[insaf.a.hits] <- "3637"
-       }
-
-   if(length(insaf.b.hits) > 0){
-       tbl$b.canonical[insaf.b.hits] <- "3637"
-       }
-
-   invisible(tbl)
-
-} # fixNonStandardGeneNames
-#--------------------------------------------------------------------------------
-test_fixNonStandardGeneNames <- function(tbl)
+} # convertAll
+#----------------------------------------------------------------------------------------------------
+test_convertAll <- function()
 {
-   print("--- test_fixNonStandardGeneNames")
+    print("--- test_convertAll")
+    tbl <- readData()
 
-   tbl <- readData(max.directories.for.testing=2)
-   tbl <- addStandardColumns(tbl)
-   tbl <- fixNonStandardGeneNames(tbl)
+       # test just 3 productOf rows to start
+    tbl.1 <- subset(tbl, interaction=="substrateOf")[1:3,]
+    tbl.2 <- subset(tbl, interaction=="productOfOf")[1:3,]
+    tbl.3 <- subset(tbl, interaction=="modifies")[1:3,]
+    tbl.4 <- subset(tbl, interaction=="complexMember")[1:3,]
 
-   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+    tbl.small <- rbind(tbl.1, tbl.2, tbl.3, tbl.4)
 
-      # make sure that mapping gene symbols in those 2 directories
-      # catches all nonstandard gene symbols in all directories
-   
-   tbl <- readData()
-   tbl <- addStandardColumns(tbl)
-   tbl <- fixNonStandardGeneNames(tbl)
-   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+    tbl.out <- convertAll(tbl.small)
+    checkEquals(dim(tbl.out), c(nrow(tbl.small), length(standardColumns)))
+    checkEquals(as.list(table(tbl.out$relation)),
+                list(complexMember=3,
+                     modifies=3,
+                     productOf=3,
+                     substrateOf=3))
 
-} # test_fixNonStandardGeneNames
-#--------------------------------------------------------------------------------
+} # test_convertAll
+#----------------------------------------------------------------------------------------------------
