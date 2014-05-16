@@ -56,8 +56,8 @@ test_ctor <- function()
     checkEquals(names(providers), providerClasses)
        # gerstein-2012  and  hypoxiaSignaling-2006  are the first two entries
        # we made into the  AnnotationHub, so let's check just those.
-    checkTrue(all(providers(refnet)$native %in% 
-              c("gerstein-2012", "hypoxiaSignaling-2006")))
+    checkTrue(all(c("gerstein-2012", "hypoxiaSignaling-2006") %in%
+                  providers(refnet)$native))
     checkTrue(length(providers$PSICQUIC) > 10)
     
 } # test_ctor
