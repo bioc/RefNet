@@ -240,6 +240,11 @@ test_providerMix_PSICQUIC_and_native <- function()
 {
     print("--- test_providerMix_PSICQUIC_and_native")
 
+    if(!"BioGrid" %in% providers(refnet)$PSICQUIC){
+        print("  BioGrid not available, skipping test")
+        return()
+        }
+    
     tbl.1 <- interactions(refnet, "TERT", provider="gerstein-2012")
     tbl.2 <- interactions(refnet, "TERT", provider="BioGrid")
     tbl.3 <- interactions(refnet, "TERT", provider=c("BioGrid", "gerstein-2012"))
