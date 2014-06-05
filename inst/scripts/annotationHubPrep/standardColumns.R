@@ -17,3 +17,5 @@ standardColumns <- c("a.canonical",
                      "b.cellularComponent",
                      "provider",
                      "comment")
+
+recognized.canonical.idTypes <- c("entrezGeneID", "recon2ReactionID", "reconMetabolite");
