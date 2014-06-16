@@ -21,7 +21,12 @@ if(!exists("psicquic")){
     idMapper <- IDMapper("9606")
     }
 
+if(length(providers(psicquic)) < 20){
+   stop("no usable connection to PSICQUIC")
+   }
+
 if(!exists("tbl.pqDemo"))
+    #if("IntAct" 
     tbl.pqDemo <- interactions(psicquic, id="CCNG1", species="9606",
                                provider="IntAct")
 
@@ -86,6 +91,8 @@ test_.findHits <- function()
     print("--- test_.findHits")
     
     tbl <- refnet@sources[["gerstein-2012"]]
+    gerstein.colnames <- list("A", "B", "A.name", "B.name", "altA", "altB",
+                              "A.id", "B.id")
     gerstein.colnames <- list("A", "B", "A.common", "B.common", "altA", "altB",
                               "A.canonical", "B.canonical")
 
@@ -242,14 +249,16 @@ test_providerMix_PSICQUIC_and_native <- function()
     print("--- test_providerMix_PSICQUIC_and_native")
 
     tbl.1 <- interactions(refnet, "TERT", provider="gerstein-2012")
-    tbl.2 <- interactions(refnet, "TERT", provider="BioGrid")
-    tbl.3 <- interactions(refnet, "TERT", provider=c("BioGrid", "gerstein-2012"))
-    checkEquals(nrow(tbl.3), nrow(tbl.1) + nrow(tbl.2))
-    checkEquals(sort(unique(tbl.3$provider)), c("BioGrid", "gerstein.2012"))
+    if("BioGrid" %in% unlist(providers(refnet), use.names=FALSE)){
+       tbl.2 <- interactions(refnet, "TERT", provider="BioGrid")
+       tbl.3 <- interactions(refnet, "TERT", provider=c("BioGrid", "gerstein-2012"))
+       checkEquals(nrow(tbl.3), nrow(tbl.1) + nrow(tbl.2))
+       checkEquals(sort(unique(tbl.3$provider)), c("BioGrid", "gerstein.2012"))
 
-    tbl.4 <- interactions(refnet, "TERT", provider=c("BioGrid", "gerstein-2012"))
-    checkEquals(nrow(tbl.4), nrow(tbl.1) + nrow(tbl.2))
-    checkEquals(sort(unique(tbl.4$provider)), c("BioGrid", "gerstein.2012"))
+       tbl.4 <- interactions(refnet, "TERT", provider=c("BioGrid", "gerstein-2012"))
+       checkEquals(nrow(tbl.4), nrow(tbl.1) + nrow(tbl.2))
+       checkEquals(sort(unique(tbl.4$provider)), c("BioGrid", "gerstein.2012"))
+       } # if BioGrid is running
 
 } # test_providerMix_PSICQUIC_and_native
 #-------------------------------------------------------------------------------

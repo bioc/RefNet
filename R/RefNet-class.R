@@ -273,16 +273,16 @@ detectDuplicateInteractions <- function(tbl)
      # we detect duplicates by comparing sorted canonical names
      # make sure no unassigned rows are in the tbl
   
-   unassigned.canonical.a <-length(grep("^-$", a))
-   unassigned.canonical.b <-length(grep("^-$", b))
+   unassigned.id.a <-length(grep("^-$", a))
+   unassigned.id.b <-length(grep("^-$", b))
   
-   if(unassigned.canonical.a | unassigned.canonical.b){
+   if(unassigned.id.a | unassigned.id.b){
        msg.0 <- sprintf("found unassigned identifiers")
-       msg.1 <- sprintf("     unassigned A.canonical count: %d",
-                              unassigned.canonical.a)
-       msg.2 <- sprintf("     unassigned B.canonical count: %d",
-                              unassigned.canonical.b)
-       stop(paste("", msg.0, msg.1, msg.2, sep="\n"))
+       msg.1 <- sprintf("     unassigned A.id count: %d/%d",
+                              unassigned.id.a, length(a))
+       msg.2 <- sprintf("     unassigned B.id count: %d/%d",
+                              unassigned.id.b, length(b))
+       warning(paste("", msg.0, msg.1, msg.2, sep="\n"))
        }
       
    max <- nrow(tbl)
