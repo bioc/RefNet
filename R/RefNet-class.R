@@ -264,7 +264,54 @@ extractPubmedIDs <- function(rawIDs)
 } # extractPubmedIDs
 #-------------------------------------------------------------------------------
 # duplicate means:  a->b is equivalent to b->a
+# duplicate means:  a->b is equivalent to b->a
 detectDuplicateInteractions <- function(tbl)
+{
+   stopifnot(all(c("A.canonical", "B.canonical") %in% colnames(tbl)))
+   a <- tbl$A.canonical
+   b <- tbl$B.canonical
+
+     # we detect duplicates by comparing sorted canonical names
+     # make sure no unassigned rows are in the tbl
+  
+   unassigned.id.a <-length(grep("^-$", a))
+   unassigned.id.b <-length(grep("^-$", b))
+  
+   if(unassigned.id.a | unassigned.id.b){
+       msg.0 <- sprintf("found unassigned identifiers")
+       msg.1 <- sprintf("     unassigned A.id count: %d/%d",
+                              unassigned.id.a, length(a))
+       msg.2 <- sprintf("     unassigned B.id count: %d/%d",
+                              unassigned.id.b, length(b))
+       warning(paste("", msg.0, msg.1, msg.2, sep="\n"))
+       }
+      
+   max <- nrow(tbl)
+   sigs <- vector("character", max)
+
+   for (i in 1:max){ 
+       ab.sorted <- sort(c(a[i], b[i]))
+       sig <- paste(ab.sorted, collapse=":")
+       sigs[i] <- sig
+      } # for i
+
+   dups <- which(duplicated(sigs))
+   dup.sigs <- unique(sigs[dups])
+   dup.group <- rep(0, nrow(tbl))
+   if(length(dup.sigs > 0)){
+       for(i in 1:length(dup.sigs)){
+           member.indices <- which(sigs == dup.sigs[i])
+           dup.group[member.indices] <- i
+           } # for i
+       } # if dup.sigs
+
+
+   tbl <- cbind(tbl, pairSig=sigs, dupGroup=dup.group, stringsAsFactors=FALSE)
+   tbl
+
+}# detectDuplicateInteractions
+#-------------------------------------------------------------------------------
+old.detectDuplicateInteractions <- function(tbl)
 {
    stopifnot(all(c("A.canonical", "B.canonical") %in% colnames(tbl)))
    a <- tbl$A.canonical
@@ -308,7 +355,7 @@ detectDuplicateInteractions <- function(tbl)
    tbl <- cbind(tbl, pairSig=sigs, dupGroup=dup.group, stringsAsFactors=FALSE)
    tbl
 
-}# detectDuplicateInteractions
+}# old.detectDuplicateInteractions
 #-------------------------------------------------------------------------------
 # a hasty solution to an important problem
 # TODO:
