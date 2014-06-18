@@ -96,8 +96,10 @@ for the transcription factor \textbf{E2F3}:
 
 {\scriptsize
 <<e2f3>>=
-tbl <- interactions(refnet, species="9606", id="E2F3", provider=c("gerstein-2012", "BioGrid"))
-dim(tbl)
+if("Biogrid" %in% unlist(providers(refnet), use.names=FALSE)){
+   tbl.1 <- interactions(refnet, species="9606", id="E2F3", provider=c("gerstein-2012", "BioGrid"))
+   dim(tbl.1)
+   }
 @ 
 }
 The full set of arguments, of which all but the first is optional:
@@ -176,23 +178,26 @@ invoking the IDMapper class, from the PSICQUIC package.
 
 {\scriptsize
 <<mapper>>=
-tbl.1 <- interactions(refnet, id="E2F3", provider="IntAct", species="9606")
-dim(tbl.1)
-idMapper <- IDMapper("9606")
-tbl.1 <- addStandardNames(idMapper, tbl.1)
-dim(tbl.1)
-tbl.1[, c("A.common", "B.common", "A.canonical", "B.canonical", "type", "provider")]
+if("IntAct" %in% unlist(providers(refnet), use.names=FALSE)){
+   tbl.2 <- interactions(refnet, id="E2F3", provider="IntAct", species="9606")
+   dim(tbl.2)
+   idMapper <- IDMapper("9606")
+   tbl.3 <- addStandardNames(idMapper, tbl.2)
+   dim(tbl.3)
+   tbl.3[, c("A.name", "B.name", "A.id", "B.id", "type", "provider")]
+   }
 @ 
 }
 
 Mixed queries produce many columns.
 
-
 {\scriptsize
 <<mixedColumns>>=
-tbl.2 <- interactions(refnet, id="ACO2", provider=c("gerstein-2012", "BioGrid"))
-tbl.2 <- addStandardNames(idMapper, tbl.2)
-sort(colnames(tbl.2))
+if("Biogrid" %in% unlist(providers(refnet), use.names=FALSE)){
+   tbl.4 <- interactions(refnet, id="ACO2", provider=c("gerstein-2012", "BioGrid"))
+   tbl.5 <- addStandardNames(idMapper, tbl.4)
+   sort(colnames(tbl.5))
+   }
 @ 
 }
   
@@ -209,8 +214,10 @@ Of the 54 interactions returned by that query, 10 come from
 
 {\scriptsize
 <<explore.e2f3>>=
-dim(tbl)
-table(tbl$provider)
+if(exists("tbl.5")){
+    dim(tbl.5)
+    table(tbl.5$provider)
+    }
 @ 
 }
 
@@ -223,11 +230,13 @@ from small-scale experiments such as ``western blotting'' and
 
 {\scriptsize
 <<xtab>>=
-options(width=180)
-tbl.info <- with(tbl, as.data.frame(table(detectionMethod, type, provider)))
-tbl.info <- tbl.info[tbl.info$Freq>0,]
-tbl.info
-options(width=80)
+if(exists("tbl.5")){
+   options(width=180)
+   tbl.info <- with(tbl.5, as.data.frame(table(detectionMethod, type, provider)))
+   tbl.info <- tbl.info[tbl.info$Freq>0,]
+   tbl.info
+   options(width=80)
+   }
 @ 
 }
 
@@ -249,11 +258,12 @@ To help with this, \Biocpkg{RefNet} offers two related functions:
 
 {\scriptsize
 <<dups>>=
-  tbl <- interactions(refnet, species="9606", id="E2F3", provider=c("gerstein-2012", "BioGrid"))
-  tbl <- addStandardNames(idMapper, tbl)
-  tbl.withDups <- detectDuplicateInteractions(tbl)
+if("Biogrid" %in% unlist(providers(refnet), use.names=FALSE)){
+   tbl.6 <- interactions(refnet, species="9606", id="E2F3", provider=c("gerstein-2012", "BioGrid"))
+   tbl.7 <- addStandardNames(idMapper, tbl.6)
+   tbl.withDups <- detectDuplicateInteractions(tbl.7)
+   }
 @ 
-}
   
 The last function call adds a ``dupGroup'' column, identifying ten
 groups, each of which has the same two interacting molecules.  The
@@ -262,10 +272,12 @@ which 28 were found. dupGroup number 1 has three interactions:
 
 {\scriptsize
 <<dupGroups>>=
-options(width=180)
-table(tbl.withDups$dupGroup)
-subset(tbl.withDups, dupGroup==1)[, c("A.common", "B.common", "type", "detectionMethod", "publicationID")]
-options(width=80)
+if(exists("tbl.withDups")){
+    options(width=180)
+    table(tbl.withDups$dupGroup)
+    subset(tbl.withDups, dupGroup==1)[, c("A.name", "B.name", "type", "detectionMethod", "publicationID")]
+    options(width=80)
+    }
 @ 
 }
   
@@ -290,8 +302,10 @@ obtain the entrez geneID, then see what aliases are known for it.
 {\scriptsize
 <<alias>>=
 library(org.Hs.eg.db)
-geneID <- unique(subset(tbl, A.common=="FZR1")$A.canonical)
-suppressWarnings(select(org.Hs.eg.db, keys=geneID, columns="ALIAS", keytype="ENTREZID"))
+if(exists("tbl.withDups")){
+   geneID <- unique(subset(tbl.withDups, A.common=="FZR1")$A.canonical)
+   suppressWarnings(select(org.Hs.eg.db, keys=geneID, columns="ALIAS", keytype="ENTREZID"))
+   }
 @ 
 }
 
@@ -313,10 +327,10 @@ all but the most interesting non-redundant interactions.
 providers <- intersect(unlist(providers(refnet), use.names=FALSE),
                        c("BIND", "BioGrid", "IntAct", "MINT",
                          "gerstein-2012"))
-tbl <- interactions(refnet, species="9606", id="E2F3", 
-                    provider=providers)
-tbl <- addStandardNames(idMapper, tbl)
-dim(tbl)
+tbl.8 <- interactions(refnet, species="9606", id="E2F3", 
+                      provider=providers)
+tbl.9 <- addStandardNames(idMapper, tbl.8)
+dim(tbl.9)
 @ 
 }
 
@@ -329,11 +343,11 @@ will sometimes be warranted.
 
 {\scriptsize
 <<eliminateNonCanonicals>>=
-removers <- with(tbl, unique(c(grep("^-$", A.canonical),
-                               grep("^-$", B.canonical))))
+removers <- with(tbl.9, unique(c(grep("^-$", A.id),
+                               grep("^-$", B.id))))
 if(length(removers) > 0)
-    tbl <- tbl[-removers,]
-dim(tbl)
+    tbl.10 <- tbl.9[-removers,]
+dim(tbl.10)
 @ 
 }
 In order to distinguish better interactions from worse an
@@ -345,7 +359,7 @@ find out the interaction types present in the current set:
 {\scriptsize
 <<pickBestFromDups>>=
 options(width=120)
-table(tbl$type)
+table(tbl.10$type)
 @ 
 }
 
@@ -355,20 +369,20 @@ We shall ingore ``colocalization'' as well.
 
 {\scriptsize
 <<detectDups>>=
-tbl <- detectDuplicateInteractions(tbl)
-dupGroups <- sort(unique(tbl$dupGroup))
+tbl.11 <- detectDuplicateInteractions(tbl.10)
+dupGroups <- sort(unique(tbl.11$dupGroup))
 preferred.types <- c("direct interaction",
                      "physical association",
                      "transcription factor binding")
 bestOfDups <- unlist(lapply(dupGroups, function(dupGroup) 
-                         pickBestFromDupGroup(dupGroup, tbl, preferred.types)))
+                         pickBestFromDupGroup(dupGroup, tbl.11, preferred.types)))
 
 deleters <- which(is.na(bestOfDups))
 if(length(deleters) > 0)
     bestOfDups <- bestOfDups[-deleters]
 length(bestOfDups)
-tbl.best <- tbl[bestOfDups,]
-tbl.best[, c("A.common", "B.common", "type", "provider", "publicationID")]
+tbl.12 <- tbl.11[bestOfDups,]
+tbl.12[, c("A.name", "B.name", "type", "provider", "publicationID")]
 @ 
 }
 
