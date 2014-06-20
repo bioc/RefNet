@@ -184,7 +184,7 @@ if("IntAct" %in% unlist(providers(refnet), use.names=FALSE)){
    idMapper <- IDMapper("9606")
    tbl.3 <- addStandardNames(idMapper, tbl.2)
    dim(tbl.3)
-   tbl.3[, c("A.name", "B.name", "A.id", "B.id", "type", "provider")]
+   tbl.3[, c("A.common", "B.common", "A.canonical", "B.canonical", "type", "provider")]
    }
 @ 
 }
@@ -275,7 +275,7 @@ which 28 were found. dupGroup number 1 has three interactions:
 if(exists("tbl.withDups")){
     options(width=180)
     table(tbl.withDups$dupGroup)
-    subset(tbl.withDups, dupGroup==1)[, c("A.name", "B.name", "type", "detectionMethod", "publicationID")]
+    subset(tbl.withDups, dupGroup==1)[, c("A.common", "B.common", "type", "detectionMethod", "publicationID")]
     options(width=80)
     }
 @ 
@@ -343,8 +343,8 @@ will sometimes be warranted.
 
 {\scriptsize
 <<eliminateNonCanonicals>>=
-removers <- with(tbl.9, unique(c(grep("^-$", A.id),
-                               grep("^-$", B.id))))
+removers <- with(tbl.9, unique(c(grep("^-$", A.canonical),
+                               grep("^-$", B.canonical))))
 if(length(removers) > 0)
     tbl.10 <- tbl.9[-removers,]
 dim(tbl.10)
@@ -382,7 +382,7 @@ if(length(deleters) > 0)
     bestOfDups <- bestOfDups[-deleters]
 length(bestOfDups)
 tbl.12 <- tbl.11[bestOfDups,]
-tbl.12[, c("A.name", "B.name", "type", "provider", "publicationID")]
+tbl.12[, c("A.common", "B.common", "type", "provider", "publicationID")]
 @ 
 }
 
