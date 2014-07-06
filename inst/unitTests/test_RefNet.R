@@ -21,9 +21,10 @@ if(!exists("psicquic")){
     idMapper <- IDMapper("9606")
     }
 
-if(!exists("tbl.pqDemo"))
-    tbl.pqDemo <- interactions(psicquic, id="CCNG1", species="9606",
-                               provider="IntAct")
+if(!is.na(psicquic))
+    if (!exists("tbl.pqDemo"))
+       tbl.pqDemo <- interactions(psicquic, id="CCNG1", species="9606",
+                                   provider="IntAct")
 
 #-------------------------------------------------------------------------------
 paulsTests <- function()
@@ -57,7 +58,8 @@ test_ctor <- function()
        # gerstein-2012  and  hypoxiaSignaling-2006  are the first two entries
        # we made into the  AnnotationHub, so let's check just those.
     checkTrue(all(c("gerstein-2012", "hypoxiaSignaling-2006") %in% providers(refnet)$native))
-    checkTrue(length(providers$PSICQUIC) > 10)
+    if(!is.na(refnet@psicquic))
+       checkTrue(length(providers$PSICQUIC) > 10)
     
 } # test_ctor
 #-------------------------------------------------------------------------------
@@ -240,6 +242,9 @@ test_providerMix_PSICQUIC_and_native <- function()
 {
     print("--- test_providerMix_PSICQUIC_and_native")
 
+    if(is.na(refnet@psicquic))
+        return()
+    
     if(!"BioGrid" %in% providers(refnet)$PSICQUIC){
         print("  BioGrid not available, skipping test")
         return()

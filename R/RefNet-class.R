@@ -1,7 +1,7 @@
 #-------------------------------------------------------------------------------
 .RefNet <- setClass("RefNet",
                     slots=c(providers="list",
-                            psicquic="PSICQUIC",
+                            psicquic="ANY",
                             sources="list"))
 
 #-------------------------------------------------------------------------------
@@ -9,7 +9,7 @@
 #-------------------------------------------------------------------------------
 RefNet <- function()
 {
-    psicquic <- PSICQUIC()
+    psicquic <- NA
 
     ah <- AnnotationHub()
     filters(ah) <- list(DataProvider="RefNet")
@@ -31,8 +31,13 @@ RefNet <- function()
 
     object@sources <- refnet.tables;
 
+    if(is.na(psicquic))
+        psicquic.providers <- list()
+    else
+        psicquic.providers <- providers(psicquic)
+
     object@providers <- list(native=names(object@sources),
-                             PSICQUIC=providers(psicquic))
+                             PSICQUIC=psicquic.providers)
    
     object
  
@@ -68,7 +73,7 @@ setMethod('show', 'RefNet',
             return()
         classes <- providerClasses(object)
         for(class in classes){
-            msg <- sprintf("| provider class '%s'", class)
+            msg <- sprintf("| provider class '%s':", class)
             cat(msg, "\n", sep="")
             for(provider in providers[[class]]){
                 msg <- sprintf("|     %s", provider)
