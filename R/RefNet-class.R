@@ -9,8 +9,10 @@
 #-------------------------------------------------------------------------------
 RefNet <- function()
 {
-    psicquic <- NA
+    print(noquote("initializing PSICQUIC..."))
+    psicquic <- PSICQUIC()
 
+    print(noquote("initializing RefNet from AnnotationHub..."))
     ah <- AnnotationHub()
     filters(ah) <- list(DataProvider="RefNet")
     tbl.refnet <- metadata(ah)
@@ -31,7 +33,10 @@ RefNet <- function()
 
     object@sources <- refnet.tables;
 
-    if(is.na(psicquic))
+  
+    suppressWarnings(psicquic.na <- is.na(psicquic))
+    
+    if(psicquic.na)
         psicquic.providers <- list()
     else
         psicquic.providers <- providers(psicquic)
