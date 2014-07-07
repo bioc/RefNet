@@ -34,18 +34,18 @@ run = function ()
     # take a quick look:
     #   t(tbl[1:2,])
     #                      1                                      2                                     
-    #  a.canonical         "196"                                  "196"                                 
-    #  b.canonical         "79365"                                "4849"                                
+    #  a.id         "196"                                  "196"                                 
+    #  b.id         "79365"                                "4849"                                
     #  relation            "transcription factor binding"         "transcription factor binding"        
     #  bidirectional       "FALSE"                                "FALSE"                               
     #  detectionMethod     "psi-mi:MI:0606(DNase I footprinting)" "psi-mi:MI:0606(DNase I footprinting)"
     #  pmid                "22959076"                             "22959076"                            
     #  a.organism          "9606"                                 "9606"                                
     #  b.organism          "9606"                                 "9606"                                
-    #  a.common            "AHR"                                  "AHR"                                 
-    #  a.canonicalIdType   "entrezGeneID"                         "entrezGeneID"                        
-    #  b.common            "BHLHE41"                              "CNOT3"                               
-    #  b.canonicalIdType   "entrezGeneID"                         "entrezGeneID"                        
+    #  a.name            "AHR"                                  "AHR"                                 
+    #  a.idType   "entrezGeneID"                         "entrezGeneID"                        
+    #  b.name            "BHLHE41"                              "CNOT3"                               
+    #  b.idType   "entrezGeneID"                         "entrezGeneID"                        
     #  cellType            "AG10803"                              "AG10803"                             
     #  a.modification      NA                                     NA                                    
     #  a.cellularComponent NA                                     NA                                    
@@ -88,7 +88,7 @@ readData <- function(max.directories.for.testing=NA, quiet=TRUE)
         }# for
     
      tbl <- data.frame(mtx[1:last.row,])
-     colnames(tbl) <- c("a.common", "b.common", "cellType")
+     colnames(tbl) <- c("a.name", "b.name", "cellType")
 
      invisible(tbl)
 
@@ -101,17 +101,17 @@ test_readData <- function()
           # 45 directories, one per celltype, check just one to start
     checkEquals(dim(tbl), c (12482, 3))
     checkEquals(as.list(table(tbl$cellType))$AG10803, 12482)
-    checkEquals(colnames(tbl), c("a.common","b.common", "cellType"))
+    checkEquals(colnames(tbl), c("a.name","b.name", "cellType"))
                 
     tbl <- readData(max.directories.for.testing=2)
     checkEquals(dim(tbl), c(27277, 3))
     checkEquals(as.list(table(tbl$cellType))$AG10803, 12482)
-    checkEquals(colnames(tbl), c("a.common","b.common", "cellType"))
+    checkEquals(colnames(tbl), c("a.name","b.name", "cellType"))
                 
     tbl <- readData()
     checkEquals(dim(tbl), c(574122, 3))
-    checkEquals(length(which(is.na(tbl$a.common))), 0)
-    checkEquals(length(which(is.na(tbl$b.common))), 0)
+    checkEquals(length(which(is.na(tbl$a.name))), 0)
+    checkEquals(length(which(is.na(tbl$b.name))), 0)
     checkEquals(length(which(is.na(tbl$cellType))), 0)
     
 } # test_readData
@@ -131,26 +131,30 @@ addStandardColumns <- function(tbl)
     b.cellularComponent <- rep(NA, nrow(tbl))
     provider <- rep("stamlabTF", nrow(tbl))
     comment <- rep(NA, nrow(tbl))
-    a.canonical <- as.character(mget(tbl$a.common, org.Hs.egSYMBOL2EG, ifnotfound=NA))
-    b.canonical <- as.character(mget(tbl$b.common, org.Hs.egSYMBOL2EG, ifnotfound=NA))
+    a.name <- tbl$a.name
+    b.name <- tbl$b.name
+    a.id <- as.character(mget(a.name, org.Hs.egSYMBOL2EG, ifnotfound=NA))
+    b.id <- as.character(mget(b.name, org.Hs.egSYMBOL2EG, ifnotfound=NA))
 
-    a.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
-    b.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
+    cellType <- tbl$cellType
+
+    a.idType <- rep("entrezGeneID", nrow(tbl))
+    b.idType <- rep("entrezGeneID", nrow(tbl))
 
     tbl <- cbind(tbl,
-                 a.canonical=a.canonical,
-                 b.canonical=b.canonical,
+                 a.id=a.id,
+                 b.id=b.id,
                  relation=relation,
                  bidirectional=bidirectional,
                  detectionMethod=detectionMethod,
                  pmid=pmid,
                  a.organism=a.organism,
                  b.organism=b.organism,
-                 #a.common=a.common,
-                 a.canonicalIdType=a.canonicalIdType,
-                 #b.common=b.common,
-                 b.canonicalIdType=b.canonicalIdType,
-                 #cellType=cellType,
+                 a.name=a.name,
+                 a.idType=a.idType,
+                 b.name=b.name,
+                 b.idType=b.idType,
+                 cellType=cellType,
                  a.modification=a.modification,
                  a.cellularComponent=a.cellularComponent,
                  b.modification=b.modification,
@@ -171,14 +175,14 @@ test_addStandardColumns <- function()
     checkEquals(colnames(tbl), standardColumns);
     checkTrue(nrow(tbl) == 27277)
 
-    checkTrue(all(tbl$a.canonicalIdType %in% recognized.canonical.idTypes))
+    checkTrue(all(tbl$a.idType %in% recognized.canonical.idTypes))
     checkTrue(all(tbl$species=="9606"))
     checkTrue(all(tbl$provider=="stamlabTF"))
     checkTrue(all(tbl$publicationID=="22959076"))
     checkTrue(all(tbl$detectionMethod=="psi-mi:MI:0606(DNase I footprinting)"))
 
-    checkEquals(length(which(tbl$a.canonical=="NA")), 222)
-    checkEquals(length(which(tbl$b.canonical=="NA")), 131)
+    checkEquals(length(which(tbl$a.id=="NA")), 222)
+    checkEquals(length(which(tbl$b.id=="NA")), 131)
     
 } # test_addStandardColumns
 #-------------------------------------------------------------------------------
@@ -190,57 +194,57 @@ test_addStandardColumns <- function()
 fixNonStandardGeneNames <- function(tbl)
 {
     
-   htlf.a.hits <- grep("HTLF", tbl$a.common)
-   htlf.b.hits <- grep("HTLF", tbl$b.common)
+   htlf.a.hits <- grep("HTLF", tbl$a.name)
+   htlf.b.hits <- grep("HTLF", tbl$b.name)
 
    if(length(htlf.a.hits) > 0){
-       tbl$a.common[htlf.a.hits] <- "FOXN2"
-       tbl$a.canonical[htlf.a.hits] <- "3344"
+       tbl$a.name[htlf.a.hits] <- "FOXN2"
+       tbl$a.id[htlf.a.hits] <- "3344"
        }
 
    if(length(htlf.b.hits) > 0){
-       tbl$b.common[htlf.b.hits] <- "FOXN2"
-       tbl$b.canonical[htlf.b.hits] <- "3344"
+       tbl$b.name[htlf.b.hits] <- "FOXN2"
+       tbl$b.id[htlf.b.hits] <- "3344"
        }
 
-   zfp161.a.hits <- grep("ZFP161", tbl$a.common)
-   zfp161.b.hits <- grep("ZFP161", tbl$b.common)
+   zfp161.a.hits <- grep("ZFP161", tbl$a.name)
+   zfp161.b.hits <- grep("ZFP161", tbl$b.name)
 
    if(length(zfp161.a.hits) > 0){
-       tbl$a.common[zfp161.a.hits] <- "ZBTB14"
-       tbl$a.canonical[zfp161.a.hits] <- "7541"
+       tbl$a.name[zfp161.a.hits] <- "ZBTB14"
+       tbl$a.id[zfp161.a.hits] <- "7541"
        }
 
    if(length(zfp161.b.hits) > 0){
-       tbl$b.common[zfp161.b.hits] <- "ZBTB14"
-       tbl$b.canonical[zfp161.b.hits] <- "7541"
+       tbl$b.name[zfp161.b.hits] <- "ZBTB14"
+       tbl$b.id[zfp161.b.hits] <- "7541"
        }
 
      #  ZNF238="10472", # ZBTB18
 
-   znf238.a.hits <- grep("ZNF238", tbl$a.common)
-   znf238.b.hits <- grep("ZNF238", tbl$b.common)
+   znf238.a.hits <- grep("ZNF238", tbl$a.name)
+   znf238.b.hits <- grep("ZNF238", tbl$b.name)
 
    if(length(znf238.a.hits) > 0){
-       tbl$a.common[znf238.a.hits] <- "ZBTB18"
-       tbl$a.canonical[znf238.a.hits] <- "10472"
+       tbl$a.name[znf238.a.hits] <- "ZBTB18"
+       tbl$a.id[znf238.a.hits] <- "10472"
        }
 
    if(length(znf238.b.hits) > 0){
-       tbl$b.common[znf238.b.hits] <- "ZBTB18"
-       tbl$b.canonical[znf238.b.hits] <- "10472"
+       tbl$b.name[znf238.b.hits] <- "ZBTB18"
+       tbl$b.id[znf238.b.hits] <- "10472"
        }
 
      #  INSAF="3637" record withdrawn by ncbi, 2008
-   insaf.a.hits <- grep("INSAF", tbl$a.common)
-   insaf.b.hits <- grep("INSAF", tbl$b.common)
+   insaf.a.hits <- grep("INSAF", tbl$a.name)
+   insaf.b.hits <- grep("INSAF", tbl$b.name)
 
    if(length(insaf.a.hits) > 0){
-       tbl$a.canonical[insaf.a.hits] <- "3637"
+       tbl$a.id[insaf.a.hits] <- "3637"
        }
 
    if(length(insaf.b.hits) > 0){
-       tbl$b.canonical[insaf.b.hits] <- "3637"
+       tbl$b.id[insaf.b.hits] <- "3637"
        }
 
    invisible(tbl)
@@ -255,8 +259,8 @@ test_fixNonStandardGeneNames <- function(tbl)
    tbl <- addStandardColumns(tbl)
    tbl <- fixNonStandardGeneNames(tbl)
 
-   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+   checkEquals(length(which(tbl$a.id=="NA")), 0)
+   checkEquals(length(which(tbl$b.id=="NA")), 0)
 
       # make sure that mapping gene symbols in those 2 directories
       # catches all nonstandard gene symbols in all directories
@@ -264,10 +268,10 @@ test_fixNonStandardGeneNames <- function(tbl)
    tbl <- readData()
    tbl <- addStandardColumns(tbl)
    tbl <- fixNonStandardGeneNames(tbl)
-   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
-   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+   checkEquals(length(which(tbl$a.id=="NA")), 0)
+   checkEquals(length(which(tbl$b.id=="NA")), 0)
+   checkEquals(length(which(tbl$a.id=="NA")), 0)
+   checkEquals(length(which(tbl$b.id=="NA")), 0)
 
 } # test_fixNonStandardGeneNames
 #--------------------------------------------------------------------------------
