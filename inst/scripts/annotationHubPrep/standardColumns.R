@@ -1,15 +1,15 @@
-standardColumns <- c("a.canonical",
-                     "b.canonical",
+standardColumns <- c("a.id",
+                     "b.id",
                      "relation",
                      "bidirectional",
                      "detectionMethod",
                      "pmid",
                      "a.organism",
                      "b.organism",
-                     "a.common",
-                     "a.canonicalIdType",
-                     "b.common",
-                     "b.canonicalIdType",
+                     "a.name",
+                     "a.idType",
+                     "b.name",
+                     "b.idType",
                      "cellType",
                      "a.modification",
                      "a.cellularComponent",
@@ -18,4 +18,4 @@ standardColumns <- c("a.canonical",
                      "provider",
                      "comment")
 
-recognized.canonical.idTypes <- c("entrezGeneID", "recon2ReactionID", "reconMetabolite");
+recognized.idTypes <- c("entrezGeneID", "recon2ReactionID", "reconMetabolite");
