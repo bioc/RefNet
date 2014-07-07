@@ -10,7 +10,7 @@ if(!exists("assignGeneIDs"))
 
 DATA_ROOT <- "~/s/data/public/human/networks/gersteinEncode"
 
-DESTINATION_DIR <- "../../extdata"
+DESTINATION_DIR <- "."
 stopifnot(file.exists(DESTINATION_DIR))
 
 .printf <- function(...) print(noquote(sprintf(...)))
@@ -25,7 +25,7 @@ runTests <- function()
     
 } # runTests
 #------------------------------------------------------------------------------------------------------------------------
-runAll = function (levels)
+run = function (levels)
 {
     runTests()
     tbl <- addStandardColumns(readFile())
@@ -42,7 +42,7 @@ readFile <- function()
 {
     filename <- file.path(DATA_ROOT, "Hs_Tr.txt")
     tbl <- read.table(filename, sep="\t", header=FALSE, as.is=TRUE)
-    colnames(tbl) <- c("a.common", "b.common")
+    colnames(tbl) <- c("a.name", "b.name")
 
     invisible(as.data.frame(tbl))
 
@@ -54,20 +54,20 @@ test_readFile <- function()
     tbl <- readFile()
     checkTrue(is(readFile(), "data.frame"))
     checkEquals(dim(tbl), c (6895, 2))
-    checkEquals(colnames(tbl), c("a.common", "b.common"))
+    checkEquals(colnames(tbl), c("a.name", "b.name"))
     
 } # test_readFile
 #-------------------------------------------------------------------------------
-#  "a.canonical",
-#  "a.canonicalIdType",
+#  "a.id",
+#  "a.idType",
 #  "a.cellularComponent",
-#  "a.common",
+#  "a.name",
 #  "a.modification",
 #  "a.organism",
-#  "b.canonical",
-#  "b.canonicalIdType",
+#  "b.id",
+#  "b.idType",
 #  "b.cellularComponent",
-#  "b.common",
+#  "b.name",
 #  "b.modification",
 #  "b.organism",
 #  "cellType",
@@ -78,11 +78,11 @@ test_readFile <- function()
 #  "reciprocal"
 addStandardColumns <- function(tbl)
 {
-    stopifnot(colnames(tbl) == c("a.common", "b.common"))
+    stopifnot(colnames(tbl) == c("a.name", "b.name"))
     count <- nrow(tbl)
 
-    tbl2 <- cbind(a.canonical=rep(NA, count),
-                  b.canonical=rep(NA, count),
+    tbl2 <- cbind(a.id=rep(NA, count),
+                  b.id=rep(NA, count),
                   relation=rep("psi-mi:MI:0407(direct interaction)", count),
                   bidirectional=rep(FALSE, count),
                   detectionMethod=rep(
@@ -90,10 +90,10 @@ addStandardColumns <- function(tbl)
                   pmid=rep("22955619", count),
                   a.organism=rep("9606", count),
                   b.organism=rep("9606", count),
-                  a.common=tbl$a.common,
-                  a.canonicalIdType=rep(NA, count),
-                  b.common=tbl$b.common,
-                  b.canonicalIdType=rep(NA, count),
+                  a.name=tbl$a.name,
+                  a.idType=rep(NA, count),
+                  b.name=tbl$b.name,
+                  b.idType=rep(NA, count),
                   cellType=rep(NA, count),
                   a.modification=rep(NA, count),
                   a.cellularComponent=rep(NA, count),
@@ -118,7 +118,7 @@ test_addStandardColumns <- function()
 #-------------------------------------------------------------------------------
 createIdMapping <- function(tbl)
 {
-    id.map <- assignGeneIDs(unique(c(tbl$a.common, tbl$b.common)))
+    id.map <- assignGeneIDs(unique(c(tbl$a.name, tbl$b.name)))
     lookup <- id.map$mapped
     multiples <- id.map$mapped[id.map$multiples]
     multiples.trimmed <- sapply(multiples, "[", 1)
@@ -136,7 +136,7 @@ test_createIdMapping <- function()
     tbl <- addStandardColumns(readFile())
     lookup <- createIdMapping(tbl)
 
-    expected.size <- 2864  # empirically obtained
+    expected.size <- 2860  # empirically obtained
     
     checkEquals(length(lookup), expected.size)
     geneIDs <- as.character(lookup)
@@ -152,11 +152,11 @@ test_createIdMapping <- function()
 #-------------------------------------------------------------------------------
 addStandardIdentifiers <- function(tbl, lookup)
 {
-    tbl$a.canonical <- as.character(lookup[tbl$a.common])
-    tbl$b.canonical <- as.character(lookup[tbl$b.common])
+    tbl$a.id <- as.character(lookup[tbl$a.name])
+    tbl$b.id <- as.character(lookup[tbl$b.name])
     idType <- rep("entrezGeneID", nrow(tbl))
-    tbl$a.canonicalIdType <- idType
-    tbl$b.canonicalIdType <- idType
+    tbl$a.idType <- idType
+    tbl$b.idType <- idType
 
     invisible(tbl[, standardColumns])  # ensure latest ordering of columns is used
 
@@ -174,19 +174,19 @@ test_addStandardIdentifiers <- function()
     checkEquals(standardColumns, colnames(tbl))
 
     x <- as.list(tbl[1,])
-    checkEquals(x$a.common, "AR")
-    checkEquals(x$b.common, "ACPP")
+    checkEquals(x$a.name, "AR")
+    checkEquals(x$b.name, "ACPP")
     checkEquals(x$a.organism, "9606")
     checkEquals(x$b.organism, "9606")
     checkEquals(x$relation, "psi-mi:MI:0407(direct interaction)")
     checkEquals(x$detectionMethod, "psi-mi:MI:0402(chromatin immunoprecipitation assay)")
     checkEquals(x$provider, "gerstein.2012")
     checkEquals(x$pmid, "22955619")
-    checkEquals(x$a.canonical, "367")
-    checkEquals(x$b.canonical, "55")
-    checkEquals(x$a.canonicalIdType, "entrezGeneID")
-    checkEquals(x$a.common, "AR")
-    checkEquals(x$b.common, "ACPP")
+    checkEquals(x$a.id, "367")
+    checkEquals(x$b.id, "55")
+    checkEquals(x$a.idType, "entrezGeneID")
+    checkEquals(x$a.name, "AR")
+    checkEquals(x$b.name, "ACPP")
     
 } # test_addStandardIdentifiers
 #-------------------------------------------------------------------------------
