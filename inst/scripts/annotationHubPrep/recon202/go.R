@@ -39,10 +39,6 @@ run = function ()
     # aws s3 ls s3://refnet-networks
     # aws s3 cp recon202.tsv s3://refnet-networks/ --region us-west-1
 
-
-   browser()
-   x <- 99
-
 } # run
 #------------------------------------------------------------------------------------------------------------------------
 readData <- function(quiet=TRUE)
@@ -77,24 +73,24 @@ test_readData <- function()
 convertComplexInteractionsToStandardColumns <- function(tbl)
 {
    tokens <- strsplit(tbl$a.orig, "_")
-   a.canonical <- unlist(lapply(tokens, "[", 2))
-   a.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
+   a.id <- unlist(lapply(tokens, "[", 2))
+   a.idType <- rep("entrezGeneID", nrow(tbl))
    
-   a.common <- unlist(mget(a.canonical, org.Hs.egSYMBOL), use.names=FALSE)
+   a.name <- unlist(mget(a.id, org.Hs.egSYMBOL), use.names=FALSE)
    relation <- rep("complexMember", nrow(tbl))
    a.cellularComponent <- unlist(lapply(tokens, "[", 4))
 
    tokens <- strsplit(tbl$b.orig, "_")
    as.geneIDs <- lapply(tokens, function(toks) toks[seq(from=2, to=length(toks), by=3)])
    as.colonSeparatedGeneIDs <- lapply(as.geneIDs, function(geneIDs) paste(geneIDs, collapse=":"))
-   b.canonical <- unlist(as.colonSeparatedGeneIDs)
-   b.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
+   b.id <- unlist(as.colonSeparatedGeneIDs)
+   b.idType <- rep("entrezGeneID", nrow(tbl))
 
    as.symbols <- lapply(as.geneIDs,
                        function(cplxMembers) as.character(mget(cplxMembers, org.Hs.egSYMBOL)))
    as.colonSeparatedSymobls <- lapply(as.symbols, function(symbols) paste(symbols, collapse=":"))
 
-   b.common <- unlist(as.colonSeparatedSymobls)
+   b.name <- unlist(as.colonSeparatedSymobls)
    
    compartment <- unlist(lapply(tokens,
                                 function(toks) unique(toks[seq(from=4, to=length(toks), by=3)])))
@@ -114,18 +110,18 @@ convertComplexInteractionsToStandardColumns <- function(tbl)
    b.modification <- rep(NA, nrow(tbl))
    pmid <- tbl$pubmed
 
-   return(data.frame(a.canonical=a.canonical,
-                     b.canonical=b.canonical,
+   return(data.frame(a.id=a.id,
+                     b.id=b.id,
                      relation=relation,
                      bidirectional=bidirectional,
                      detectionMethod=detectionMethod,
                      pmid=pmid,
                      a.organism=a.organism,
                      b.organism=b.organism,
-                     a.common=a.common,
-                     a.canonicalIdType=a.canonicalIdType,
-                     b.common=b.common,
-                     b.canonicalIdType=b.canonicalIdType,
+                     a.name=a.name,
+                     a.idType=a.idType,
+                     b.name=b.name,
+                     b.idType=b.idType,
                      cellType=cellType,
                      a.modification=a.modification,
                      a.cellularComponent=a.cellularComponent,
@@ -150,11 +146,11 @@ test_convertComplexInteractionsToStandardColumns <- function()
     checkEquals(unique(tbl.1$relation), "complexMember")
     checkEquals(unique(tbl.1$provider), "recon2")
     checkEquals(unique(tbl.1$bidirectional), FALSE)
-    checkEquals(tbl.1$a.common, c("PIGK", "PIGT", "PIGU"))
-    checkEquals(tbl.1$a.canonical, c("10026", "51604", "128869"))
+    checkEquals(tbl.1$a.name, c("PIGK", "PIGT", "PIGU"))
+    checkEquals(tbl.1$a.id, c("10026", "51604", "128869"))
        # all 3 are the same complex
-    checkEquals(unique(tbl.1$b.canonical), "10026:128869:51604:8733:94005")
-    checkEquals(unique(tbl.1$b.common), "PIGK:PIGU:PIGT:GPAA1:PIGS")
+    checkEquals(unique(tbl.1$b.id), "10026:128869:51604:8733:94005")
+    checkEquals(unique(tbl.1$b.name), "PIGK:PIGU:PIGT:GPAA1:PIGS")
     
       # now run the whole table
     case.2 <- subset(tbl, interaction=="complexMember")
@@ -171,20 +167,20 @@ test_convertComplexInteractionsToStandardColumns <- function()
 convertModifiesInteractionsToStandardColumns <- function(tbl)
 {
    tokens <- strsplit(tbl$a.orig, "_")
-   a.canonical <- unlist(lapply(tokens, "[", 2))
+   a.id <- unlist(lapply(tokens, "[", 2))
    
-   a.common <- unlist(mget(a.canonical, org.Hs.egSYMBOL, ifnotfound=NA), use.names=FALSE)
-   failures <- which(is.na(a.common))
+   a.name <- unlist(mget(a.id, org.Hs.egSYMBOL, ifnotfound=NA), use.names=FALSE)
+   failures <- which(is.na(a.name))
        # may as well use the unmapped canonical name for common names as well
-   a.common[failures] <- a.canonical[failures]
-   a.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
-   a.canonicalIdType[failures] <- NA
+   a.name[failures] <- a.id[failures]
+   a.idType <- rep("entrezGeneID", nrow(tbl))
+   a.idType[failures] <- NA
    relation <- rep("modifies", nrow(tbl))
    a.cellularComponent <- unlist(lapply(tokens, "[", 4))
 
-   b.canonical <- tbl$b.orig
-   b.canonicalIdType <- rep("recon2ReactionID", nrow(tbl))
-   b.common <- tbl$b.name
+   b.id <- tbl$b.orig
+   b.idType <- rep("recon2ReactionID", nrow(tbl))
+   b.name <- tbl$b.name
    
    b.cellularComponent <- rep(NA, nrow(tbl))
 
@@ -202,18 +198,18 @@ convertModifiesInteractionsToStandardColumns <- function(tbl)
    b.modification <- rep(NA, nrow(tbl))
    pmid <- tbl$pubmed
 
-   return(data.frame(a.canonical=a.canonical,
-                     b.canonical=b.canonical,
+   return(data.frame(a.id=a.id,
+                     b.id=b.id,
                      relation=relation,
                      bidirectional=bidirectional,
                      detectionMethod=detectionMethod,
                      pmid=pmid,
                      a.organism=a.organism,
                      b.organism=b.organism,
-                     a.common=a.common,
-                     a.canonicalIdType=a.canonicalIdType,
-                     b.common=b.common,
-                     b.canonicalIdType=b.canonicalIdType,
+                     a.name=a.name,
+                     a.idType=a.idType,
+                     b.name=b.name,
+                     b.idType=b.idType,
                      cellType=cellType,
                      a.modification=a.modification,
                      a.cellularComponent=a.cellularComponent,
@@ -236,41 +232,41 @@ test_convertModifiesInteractionsToStandardColumns <- function()
     tbl.1  <- convertModifiesInteractionsToStandardColumns(case.1)
     checkEquals(dim(tbl.1), c(3,19))
     checkEquals(colnames(tbl.1), standardColumns)
-    checkEquals(unique(tbl.1$a.canonicalIdType), "entrezGeneID")
-    checkEquals(unique(tbl.1$b.canonicalIdType), "recon2ReactionID")
-    checkEquals(tbl.1$a.common, c("AOC2", "AOC1", "AOC3"))
-    checkEquals(unique(tbl.1$b.common), "1,3-Diaminopropane:oxygen oxidoreductase (deaminating)")
-    checkEquals(unique(tbl.1$b.canonical), "R_13DAMPPOX")    
+    checkEquals(unique(tbl.1$a.idType), "entrezGeneID")
+    checkEquals(unique(tbl.1$b.idType), "recon2ReactionID")
+    checkEquals(tbl.1$a.name, c("AOC2", "AOC1", "AOC3"))
+    checkEquals(unique(tbl.1$b.name), "1,3-Diaminopropane:oxygen oxidoreductase (deaminating)")
+    checkEquals(unique(tbl.1$b.id), "R_13DAMPPOX")    
 
       # test the whole table
     case.2 <- subset(tbl, interaction=="modifies")
     tbl.2  <- convertModifiesInteractionsToStandardColumns(case.2)
     checkEquals(dim(tbl.2), c(nrow(case.2), length(standardColumns)))
-    checkEquals(as.list(table(tbl.2$a.canonicalIdType)),
+    checkEquals(as.list(table(tbl.2$a.idType)),
                 list(entrezGeneID=9728))
        # nrow (case.2) - 9728 which have been successfully mapped
-    checkEquals(length(which(is.na(tbl.2$a.canonicalIdType))), 254)
+    checkEquals(length(which(is.na(tbl.2$a.idType))), 254)
 
 } # test_convertModifiesInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
 convertProductOfInteractionsToStandardColumns <- function(tbl)
 {
    tokens <- strsplit(tbl$a.orig, "_")
-   a.canonical <- unlist(lapply(tokens, "[", 2))
+   a.id <- unlist(lapply(tokens, "[", 2))
    
-   a.common <- tbl$a.name
-   a.canonicalIdType <- rep("reconMetabolite", nrow(tbl))
+   a.name <- tbl$a.name
+   a.idType <- rep("reconMetabolite", nrow(tbl))
    relation <- rep("productOf", nrow(tbl))
    a.cellularComponent <- unlist(lapply(tokens, "[", 3))
 
-   b.canonical <- tbl$b.orig
-   b.canonicalIdType <- rep("recon2ReactionID", nrow(tbl))
-   b.common <- tbl$b.name
+   b.id <- tbl$b.orig
+   b.idType <- rep("recon2ReactionID", nrow(tbl))
+   b.name <- tbl$b.name
    
    b.cellularComponent <- rep(NA, nrow(tbl))
 
-   a.organism <- "9606"
-   b.organism <- "9606"
+   a.organism <- rep("9606", nrow(tbl))
+   b.organism <- rep("9606", nrow(tbl))
 
    bidirectional <- tbl$reversible
    detectionMethod <- rep(NA, nrow(tbl))
@@ -283,18 +279,20 @@ convertProductOfInteractionsToStandardColumns <- function(tbl)
    b.modification <- rep(NA, nrow(tbl))
    pmid <- tbl$pubmed
 
-   return(data.frame(a.canonical=a.canonical,
-                     b.canonical=b.canonical,
+   #browser()
+   #x <- 99
+   return(data.frame(a.id=a.id,
+                     b.id=b.id,
                      relation=relation,
                      bidirectional=bidirectional,
                      detectionMethod=detectionMethod,
                      pmid=pmid,
                      a.organism=a.organism,
                      b.organism=b.organism,
-                     a.common=a.common,
-                     a.canonicalIdType=a.canonicalIdType,
-                     b.common=b.common,
-                     b.canonicalIdType=b.canonicalIdType,
+                     a.name=a.name,
+                     a.idType=a.idType,
+                     b.name=b.name,
+                     b.idType=b.idType,
                      cellType=cellType,
                      a.modification=a.modification,
                      a.cellularComponent=a.cellularComponent,
@@ -317,23 +315,23 @@ test_convertProductOfInteractionsToStandardColumns <- function()
 
     checkEquals(dim(tbl.1), c(3,19))
     checkEquals(colnames(tbl.1), standardColumns)
-    checkEquals(unique(tbl.1$a.canonicalIdType), "reconMetabolite")
-    checkEquals(unique(tbl.1$b.canonicalIdType), "recon2ReactionID")
-    checkEquals(tbl.1$a.common,
+    checkEquals(unique(tbl.1$a.idType), "reconMetabolite")
+    checkEquals(unique(tbl.1$b.idType), "recon2ReactionID")
+    checkEquals(tbl.1$a.name,
                 c("10-formyltetrahydrofolate-[Glu](5)",
                   "10-formyltetrahydrofolate-[Glu](5)",
                   "10-formyltetrahydrofolate-[Glu](6)"))
-    checkEquals(tbl.1$b.common, c("5-glutamyl-10FTHF transport, lysosomal",
+    checkEquals(tbl.1$b.name, c("5-glutamyl-10FTHF transport, lysosomal",
                                   "5-glutamyl-10FTHF transport, mitochondrial",
                                   "6-glutamyl-10FTHF transport, lysosomal"))
-    checkEquals(tbl.1$b.canonical, c("R_10FTHF5GLUtl", "R_10FTHF5GLUtm", "R_10FTHF6GLUtl"))
+    checkEquals(tbl.1$b.id, c("R_10FTHF5GLUtl", "R_10FTHF5GLUtm", "R_10FTHF6GLUtl"))
 
       # test the whole table
     case.2 <- subset(tbl, interaction=="productOf")
     tbl.2  <- convertProductOfInteractionsToStandardColumns(case.2)
     checkEquals(dim(tbl.2), c(nrow(case.2), length(standardColumns)))
-    checkEquals(as.list(table(tbl.2$a.canonicalIdType)), list(reconMetabolite=15863))
-    checkEquals(as.list(table(tbl.2$b.canonicalIdType)), list(recon2ReactionID=15863))
+    checkEquals(as.list(table(tbl.2$a.idType)), list(reconMetabolite=15863))
+    checkEquals(as.list(table(tbl.2$b.idType)), list(recon2ReactionID=15863))
 
 
 } # test_convertProductOfInteractionsToStandardColumns
@@ -341,16 +339,16 @@ test_convertProductOfInteractionsToStandardColumns <- function()
 convertSubstrateOfInteractionsToStandardColumns <- function(tbl)
 {
    tokens <- strsplit(tbl$a.orig, "_")
-   a.canonical <- unlist(lapply(tokens, "[", 2))
+   a.id <- unlist(lapply(tokens, "[", 2))
    
-   a.common <- tbl$a.name
-   a.canonicalIdType <- rep("reconMetabolite", nrow(tbl))
+   a.name <- tbl$a.name
+   a.idType <- rep("reconMetabolite", nrow(tbl))
    relation <- rep("substrateOf", nrow(tbl))
    a.cellularComponent <- unlist(lapply(tokens, "[", 3))
 
-   b.canonical <- tbl$b.orig
-   b.canonicalIdType <- rep("recon2ReactionID", nrow(tbl))
-   b.common <- tbl$b.name
+   b.id <- tbl$b.orig
+   b.idType <- rep("recon2ReactionID", nrow(tbl))
+   b.name <- tbl$b.name
    
    b.cellularComponent <- rep(NA, nrow(tbl))
 
@@ -367,18 +365,18 @@ convertSubstrateOfInteractionsToStandardColumns <- function(tbl)
    b.modification <- rep(NA, nrow(tbl))
    pmid <- tbl$pubmed
 
-   return(data.frame(a.canonical=a.canonical,
-                     b.canonical=b.canonical,
+   return(data.frame(a.id=a.id,
+                     b.id=b.id,
                      relation=relation,
                      bidirectional=bidirectional,
                      detectionMethod=detectionMethod,
                      pmid=pmid,
                      a.organism=a.organism,
                      b.organism=b.organism,
-                     a.common=a.common,
-                     a.canonicalIdType=a.canonicalIdType,
-                     b.common=b.common,
-                     b.canonicalIdType=b.canonicalIdType,
+                     a.name=a.name,
+                     a.idType=a.idType,
+                     b.name=b.name,
+                     b.idType=b.idType,
                      cellType=cellType,
                      a.modification=a.modification,
                      a.cellularComponent=a.cellularComponent,
@@ -401,25 +399,25 @@ test_convertSubstrateOfInteractionsToStandardColumns <- function()
 
     checkEquals(dim(tbl.1), c(3,19))
     checkEquals(colnames(tbl.1), standardColumns)
-    checkEquals(unique(tbl.1$a.canonicalIdType), "reconMetabolite")
-    checkEquals(unique(tbl.1$b.canonicalIdType), "recon2ReactionID")
-    checkEquals(tbl.1$a.common,
+    checkEquals(unique(tbl.1$a.idType), "reconMetabolite")
+    checkEquals(unique(tbl.1$b.idType), "recon2ReactionID")
+    checkEquals(tbl.1$a.name,
                 c("10-formyltetrahydrofolate-[Glu](5)",
                   "10-formyltetrahydrofolate-[Glu](5)",
                   "10-formyltetrahydrofolate-[Glu](6)"))
 
-    checkEquals(tbl.1$b.common, c("5-glutamyl-10FTHF transport, lysosomal",
+    checkEquals(tbl.1$b.name, c("5-glutamyl-10FTHF transport, lysosomal",
                                   "5-glutamyl-10FTHF transport, mitochondrial",
                                   "6-glutamyl-10FTHF transport, lysosomal"))
 
-    checkEquals(tbl.1$b.canonical, c("R_10FTHF5GLUtl", "R_10FTHF5GLUtm","R_10FTHF6GLUtl"))
+    checkEquals(tbl.1$b.id, c("R_10FTHF5GLUtl", "R_10FTHF5GLUtm","R_10FTHF6GLUtl"))
 
       # test the whole table
     case.2 <- subset(tbl, interaction=="substrateOf")
     tbl.2  <- convertSubstrateOfInteractionsToStandardColumns(case.2)
     checkEquals(dim(tbl.2), c(nrow(case.2), length(standardColumns)))
-    checkEquals(as.list(table(tbl.2$a.canonicalIdType)), list(reconMetabolite=14976))
-    checkEquals(as.list(table(tbl.2$b.canonicalIdType)), list(recon2ReactionID=14976))
+    checkEquals(as.list(table(tbl.2$a.idType)), list(reconMetabolite=14976))
+    checkEquals(as.list(table(tbl.2$b.idType)), list(recon2ReactionID=14976))
 
 } # test_convertSubstrateOfInteractionsToStandardColumns
 #----------------------------------------------------------------------------------------------------
@@ -446,7 +444,7 @@ test_convertAll <- function()
 
        # test just 3 productOf rows to start
     tbl.1 <- subset(tbl, interaction=="substrateOf")[1:3,]
-    tbl.2 <- subset(tbl, interaction=="productOfOf")[1:3,]
+    tbl.2 <- subset(tbl, interaction=="productOf")[1:3,]
     tbl.3 <- subset(tbl, interaction=="modifies")[1:3,]
     tbl.4 <- subset(tbl, interaction=="complexMember")[1:3,]
 
