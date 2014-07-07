@@ -1,0 +1,273 @@
+# go.R
+#------------------------------------------------------------------------------------------------------------------------
+options(stringsAsFactors=FALSE)
+library (org.Hs.eg.db)
+source("../standardColumns.R")
+
+if(!exists("assignGeneIDs"))
+    source("~/s/data/public/human/symToGeneID.R")
+
+DATA_ROOT <- "~/s/data/public/human/networks/stamlabTF"
+
+DESTINATION_DIR <- "."
+stopifnot(file.exists(DESTINATION_DIR))
+
+.printf <- function(...) print(noquote(sprintf(...)))
+
+total.count <- 574122    # number of interactions
+#------------------------------------------------------------------------------------------------------------------------
+runTests <- function()
+{
+    test_readData()
+    test_addStandardColumns()        # canonical geneIDs added also
+    test_fixNonStandardGeneNames()
+    
+} # runTests
+#------------------------------------------------------------------------------------------------------------------------
+run = function ()
+{
+   runTests()
+   tbl <- readData()
+   tbl <- addStandardColumns(tbl)
+   tbl <- fixNonStandardGeneNames(tbl)
+   write.table(tbl, file="stamlabTFs-2012.tsv", row.names=FALSE, sep="\t", quote=FALSE)
+    # take a quick look:
+    #   t(tbl[1:2,])
+    #                      1                                      2                                     
+    #  a.canonical         "196"                                  "196"                                 
+    #  b.canonical         "79365"                                "4849"                                
+    #  relation            "transcription factor binding"         "transcription factor binding"        
+    #  bidirectional       "FALSE"                                "FALSE"                               
+    #  detectionMethod     "psi-mi:MI:0606(DNase I footprinting)" "psi-mi:MI:0606(DNase I footprinting)"
+    #  pmid                "22959076"                             "22959076"                            
+    #  a.organism          "9606"                                 "9606"                                
+    #  b.organism          "9606"                                 "9606"                                
+    #  a.common            "AHR"                                  "AHR"                                 
+    #  a.canonicalIdType   "entrezGeneID"                         "entrezGeneID"                        
+    #  b.common            "BHLHE41"                              "CNOT3"                               
+    #  b.canonicalIdType   "entrezGeneID"                         "entrezGeneID"                        
+    #  cellType            "AG10803"                              "AG10803"                             
+    #  a.modification      NA                                     NA                                    
+    #  a.cellularComponent NA                                     NA                                    
+    #  b.modification      NA                                     NA                                    
+    #  b.cellularComponent NA                                     NA                                    
+    #  provider            "stamlabTF"                            "stamlabTF"                           
+    #  comment             NA                                     NA                                    
+
+    # check the line count, upload to amazon s3, which requires credentials, typically
+    #   a pair of access keys in ~/.aws/config
+    # wc -l stamlabTFs-2012.tsv  #  574123
+    # aws s3 ls s3://refnet-networks
+    # aws s3 cp stamlabTFs-2012.tsv s3://refnet-networks/ --region us-west-1
+
+} # run
+#------------------------------------------------------------------------------------------------------------------------
+readData <- function(max.directories.for.testing=NA, quiet=TRUE)
+{
+    cellLineDirectories <- list.files(DATA_ROOT)
+    if(!is.na(max.directories.for.testing))
+        max <- max.directories.for.testing
+    else
+        max <- length(cellLineDirectories)
+
+    mtx <- matrix(data=NA_character_, nrow=total.count, ncol=3)
+    next.free.row <- 1
+    
+    for(dir in cellLineDirectories[1:max]){
+        file.name <- file.path(DATA_ROOT, dir, "genes-regulate-genes.txt")
+        if(!file.exists(file.name))
+            next
+        x <- scan(file.name, what=character(), quiet=quiet)
+        m.tmp <- matrix(x, ncol=2, byrow=TRUE)
+        last.row <- next.free.row + (length(x)/2) -1
+        mtx [next.free.row:last.row, 1:2] <- m.tmp
+        mtx [next.free.row:last.row, 3] <- rep(dir, nrow(m.tmp))
+        next.free.row <- last.row + 1
+        if(!quiet)
+           .printf("new cellLine: %s, rowCount %d/%d", dir, nrow(m.tmp), nrow(mtx))
+        }# for
+    
+     tbl <- data.frame(mtx[1:last.row,])
+     colnames(tbl) <- c("a.common", "b.common", "cellType")
+
+     invisible(tbl)
+
+} # readData
+#-------------------------------------------------------------------------------
+test_readData <- function()
+{
+    print("--- test_readData")
+    tbl <- readData(max.directories.for.testing=1)
+          # 45 directories, one per celltype, check just one to start
+    checkEquals(dim(tbl), c (12482, 3))
+    checkEquals(as.list(table(tbl$cellType))$AG10803, 12482)
+    checkEquals(colnames(tbl), c("a.common","b.common", "cellType"))
+                
+    tbl <- readData(max.directories.for.testing=2)
+    checkEquals(dim(tbl), c(27277, 3))
+    checkEquals(as.list(table(tbl$cellType))$AG10803, 12482)
+    checkEquals(colnames(tbl), c("a.common","b.common", "cellType"))
+                
+    tbl <- readData()
+    checkEquals(dim(tbl), c(574122, 3))
+    checkEquals(length(which(is.na(tbl$a.common))), 0)
+    checkEquals(length(which(is.na(tbl$b.common))), 0)
+    checkEquals(length(which(is.na(tbl$cellType))), 0)
+    
+} # test_readData
+#-------------------------------------------------------------------------------
+addStandardColumns <- function(tbl)
+{
+    a.organism <- rep("9606", nrow(tbl))
+    b.organism <- rep("9606", nrow(tbl))
+    
+    relation <- rep("transcription factor binding", nrow(tbl))
+    detectionMethod <- rep("psi-mi:MI:0606(DNase I footprinting)", nrow(tbl))
+    pmid <- rep("22959076", nrow(tbl))
+    bidirectional <- rep("FALSE", nrow(tbl))
+    a.modification <- rep(NA, nrow(tbl))
+    b.modification <- rep(NA, nrow(tbl))
+    a.cellularComponent <- rep(NA, nrow(tbl))
+    b.cellularComponent <- rep(NA, nrow(tbl))
+    provider <- rep("stamlabTF", nrow(tbl))
+    comment <- rep(NA, nrow(tbl))
+    a.canonical <- as.character(mget(tbl$a.common, org.Hs.egSYMBOL2EG, ifnotfound=NA))
+    b.canonical <- as.character(mget(tbl$b.common, org.Hs.egSYMBOL2EG, ifnotfound=NA))
+
+    a.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
+    b.canonicalIdType <- rep("entrezGeneID", nrow(tbl))
+
+    tbl <- cbind(tbl,
+                 a.canonical=a.canonical,
+                 b.canonical=b.canonical,
+                 relation=relation,
+                 bidirectional=bidirectional,
+                 detectionMethod=detectionMethod,
+                 pmid=pmid,
+                 a.organism=a.organism,
+                 b.organism=b.organism,
+                 #a.common=a.common,
+                 a.canonicalIdType=a.canonicalIdType,
+                 #b.common=b.common,
+                 b.canonicalIdType=b.canonicalIdType,
+                 #cellType=cellType,
+                 a.modification=a.modification,
+                 a.cellularComponent=a.cellularComponent,
+                 b.modification=b.modification,
+                 b.cellularComponent=b.cellularComponent,
+                 provider=provider,
+                 comment=comment)
+
+     tbl[, standardColumns]
+
+} # addStandardColumns
+#-------------------------------------------------------------------------------
+test_addStandardColumns <- function()
+{
+    print("--- test_addStandardColumns")
+    tbl <- readData(max.directories.for.testing=2)
+    tbl <- addStandardColumns(tbl)
+
+    checkEquals(colnames(tbl), standardColumns);
+    checkTrue(nrow(tbl) == 27277)
+
+    checkTrue(all(tbl$a.canonicalIdType %in% recognized.canonical.idTypes))
+    checkTrue(all(tbl$species=="9606"))
+    checkTrue(all(tbl$provider=="stamlabTF"))
+    checkTrue(all(tbl$publicationID=="22959076"))
+    checkTrue(all(tbl$detectionMethod=="psi-mi:MI:0606(DNase I footprinting)"))
+
+    checkEquals(length(which(tbl$a.canonical=="NA")), 222)
+    checkEquals(length(which(tbl$b.canonical=="NA")), 131)
+    
+} # test_addStandardColumns
+#-------------------------------------------------------------------------------
+# four stamlab gene symbols are not (or are no longer) HUGO standard.
+#  HTLF="3344",    # FOXN2
+#  ZFP161="7541",  # ZBTB14
+#  ZNF238="10472", # ZBTB18
+#  INSAF="3637"   # record withdrawn by ncbi, 2008
+fixNonStandardGeneNames <- function(tbl)
+{
+    
+   htlf.a.hits <- grep("HTLF", tbl$a.common)
+   htlf.b.hits <- grep("HTLF", tbl$b.common)
+
+   if(length(htlf.a.hits) > 0){
+       tbl$a.common[htlf.a.hits] <- "FOXN2"
+       tbl$a.canonical[htlf.a.hits] <- "3344"
+       }
+
+   if(length(htlf.b.hits) > 0){
+       tbl$b.common[htlf.b.hits] <- "FOXN2"
+       tbl$b.canonical[htlf.b.hits] <- "3344"
+       }
+
+   zfp161.a.hits <- grep("ZFP161", tbl$a.common)
+   zfp161.b.hits <- grep("ZFP161", tbl$b.common)
+
+   if(length(zfp161.a.hits) > 0){
+       tbl$a.common[zfp161.a.hits] <- "ZBTB14"
+       tbl$a.canonical[zfp161.a.hits] <- "7541"
+       }
+
+   if(length(zfp161.b.hits) > 0){
+       tbl$b.common[zfp161.b.hits] <- "ZBTB14"
+       tbl$b.canonical[zfp161.b.hits] <- "7541"
+       }
+
+     #  ZNF238="10472", # ZBTB18
+
+   znf238.a.hits <- grep("ZNF238", tbl$a.common)
+   znf238.b.hits <- grep("ZNF238", tbl$b.common)
+
+   if(length(znf238.a.hits) > 0){
+       tbl$a.common[znf238.a.hits] <- "ZBTB18"
+       tbl$a.canonical[znf238.a.hits] <- "10472"
+       }
+
+   if(length(znf238.b.hits) > 0){
+       tbl$b.common[znf238.b.hits] <- "ZBTB18"
+       tbl$b.canonical[znf238.b.hits] <- "10472"
+       }
+
+     #  INSAF="3637" record withdrawn by ncbi, 2008
+   insaf.a.hits <- grep("INSAF", tbl$a.common)
+   insaf.b.hits <- grep("INSAF", tbl$b.common)
+
+   if(length(insaf.a.hits) > 0){
+       tbl$a.canonical[insaf.a.hits] <- "3637"
+       }
+
+   if(length(insaf.b.hits) > 0){
+       tbl$b.canonical[insaf.b.hits] <- "3637"
+       }
+
+   invisible(tbl)
+
+} # fixNonStandardGeneNames
+#--------------------------------------------------------------------------------
+test_fixNonStandardGeneNames <- function(tbl)
+{
+   print("--- test_fixNonStandardGeneNames")
+
+   tbl <- readData(max.directories.for.testing=2)
+   tbl <- addStandardColumns(tbl)
+   tbl <- fixNonStandardGeneNames(tbl)
+
+   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
+   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+
+      # make sure that mapping gene symbols in those 2 directories
+      # catches all nonstandard gene symbols in all directories
+   
+   tbl <- readData()
+   tbl <- addStandardColumns(tbl)
+   tbl <- fixNonStandardGeneNames(tbl)
+   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
+   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+   checkEquals(length(which(tbl$a.canonical=="NA")), 0)
+   checkEquals(length(which(tbl$b.canonical=="NA")), 0)
+
+} # test_fixNonStandardGeneNames
+#--------------------------------------------------------------------------------
