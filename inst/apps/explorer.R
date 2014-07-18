@@ -61,7 +61,9 @@ uiWidgets <- fluidPage(
        mainPanel(
           tabsetPanel(
                tabPanel('interactions', dataTableOutput(outputId="table")),
-               tabPanel('info', verbatimTextOutput("summary"))
+               tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
+               tabPanel("Gene A", htmlOutput("geneA")),
+               tabPanel("Gene B", htmlOutput("geneB"))
              )
           )
        ) # uiWidgets
@@ -91,13 +93,28 @@ serverFunction <- function(input, output)
        simplify.pubmed.ids(tbl4)
        }) # reactive
 
-    output$summary <- renderPrint({
-          #dataset <- datasetInput()
-          #summary(dataset)
-          output$value <- renderPrint({ input$action })
-          cleanGenes(input$genes)
-          }) # renderPrint
-      datatable.options <- list(bFilter=TRUE)
+     output$pubmedAbstract <- renderUI({
+        tags$iframe(
+          height="500px",
+          width="800px",
+          seamless="seamless",
+          src="http://www.ncbi.nlm.nih.gov/pubmed/?term=15115758")})
+
+     output$geneA <- renderUI({
+        tags$iframe(
+          height="500px",
+          width="800px",
+          seamless="seamless",
+          src="http://www.ncbi.nlm.nih.gov/gene/675")})
+
+     output$geneB <- renderUI({
+        tags$iframe(
+          height="500px",
+          width="800px",
+          seamless="seamless",
+          src="http://www.ncbi.nlm.nih.gov/gene/2177")})
+
+      datatable.options <- list(bFilter=TRUE, bSortClasses = TRUE)
       output$table <- renderDataTable(findInteractions(),options=datatable.options)
 
 } # serverFunction
