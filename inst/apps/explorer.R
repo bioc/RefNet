@@ -59,8 +59,10 @@ uiWidgets <- fluidPage(
                       submitButton("Find Interactions")
                       ),
        mainPanel(
-          verbatimTextOutput("summary"),
-          dataTableOutput(outputId="table")
+          tabsetPanel(
+               tabPanel('interactions', dataTableOutput(outputId="table")),
+               tabPanel('info', verbatimTextOutput("summary"))
+             )
           )
        ) # uiWidgets
 
