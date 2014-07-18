@@ -77,11 +77,17 @@ scriptsAndStyles <- function()
 
 } # scriptsAndStyles
 #----------------------------------------------------------------------------------------------------
+rowSelectableDataTableOutput <- function(outputId, ...)
+{
+
+} # rowSelectableDataTableOutput
+#----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
    tags$head(
       #tags$style(HTML("th, td { white-space: nowrap; }"))
-      HTML(scriptsAndStyles())
-       ),
+      HTML(scriptsAndStyles()),
+      div(id="rowSelTable", class = "shiny-datatable-output selectable")
+      ),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
                     
@@ -93,9 +99,10 @@ uiWidgets <- fluidPage(
        mainPanel(
           tabsetPanel(
                tabPanel('interactions', dataTableOutput(outputId="table")),
+               #tabPanel('rowSelTbl', selectableDataTableOutput(outputId="rowSelTable",...)),
                tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
-               tabPanel("Gene A", htmlOutput("geneA")),
-               tabPanel("Gene B", htmlOutput("geneB"))
+               tabPanel("A", htmlOutput("geneA")),
+               tabPanel("B", htmlOutput("geneB"))
              )
           )
        ) # uiWidgets
