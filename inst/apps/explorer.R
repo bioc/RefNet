@@ -79,15 +79,46 @@ scriptsAndStyles <- function()
 #----------------------------------------------------------------------------------------------------
 rowSelectableDataTableOutput <- function(outputId, ...)
 {
+     origStyle<- c( 
+         '<script src="shared/datatables/js/jquery.dataTables.min.js"></script>',
+         '<script class="shiny-html-output" 
+                  src= "/js/DTbinding.js"></script>',
+         '<link rel = "stylesheet", 
+                type = "text/css", 
+                href = "shared/datatables/css/DT_bootstrap.css"></link>',
+         '<style type="text/css">
+                .rowsSelected td{
+                background-color: rgba(250,80,90,0.3) 
+                !important})  </style>',
+         '<style type="text/css"> .selectable div table tbody tr{
+                cursor: hand; cursor: pointer;}</style>',
+         '<style type="text/css"> .selectable div table tbody tr td{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;} </style>',
+         '<style type="text/css">
+                #myTable tfoot {display:table-header-group;}
+               th, td { white-space: nowrap; }
+         </style>')
+     
+     tagList(
+         singleton(
+             tags$head(HTML(origStyle))
+             ),
+         div(id = outputId, class = "shiny-datatable-output selectable")
+         )
 
 } # rowSelectableDataTableOutput
 #----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
-   tags$head(
+   #tags$head(
       #tags$style(HTML("th, td { white-space: nowrap; }"))
-      HTML(scriptsAndStyles()),
-      div(id="rowSelTable", class = "shiny-datatable-output selectable")
-      ),
+      #HTML(scriptsAndStyles()),
+      #div(id="rowSelTable", class = "shiny-datatable-output selectable")
+      #),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
                     
@@ -98,7 +129,7 @@ uiWidgets <- fluidPage(
                       ),
        mainPanel(
           tabsetPanel(
-               tabPanel('interactions', dataTableOutput(outputId="table")),
+               tabPanel('interactions', rowSelectableDataTableOutput(outputId="table")),
                #tabPanel('rowSelTbl', selectableDataTableOutput(outputId="rowSelTable",...)),
                tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
                tabPanel("A", htmlOutput("geneA")),
