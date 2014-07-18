@@ -4,9 +4,13 @@ if(!exists("refnet"))
     refnet <- RefNet()
 
 if(!exists("idMapper"))
-    idMapper <- IDMapper()
+    idMapper <- IDMapper("9606")
 
 providers <- unlist(providers(refnet), use.names=FALSE)
+initial.genes <- "ABCB10"
+initial.genes <- ""
+empty.data.frame <- data.frame(A=c("a"), B=("b"), type="type", publicationID="", A="", B="",
+                               detectionMethod="", provider="", stringsAsFactors=FALSE)[-1,]
 
 #----------------------------------------------------------------------------------------------------
 cleanGenes <- function(s)
@@ -15,12 +19,13 @@ cleanGenes <- function(s)
    toupper(strsplit(genes.raw, " +")[[1]])
 }
 #----------------------------------------------------------------------------------------------------
-uiWidgets <- pageWithSidebar(
+uiWidgets <- fluidPage(#theme="bootstrap.css", #pageWithSidebar(
        headerPanel("RefNet"),
        sidebarPanel(width=2,
+                    
        selectizeInput(inputId='providers', label='providers',
                       choices = providers, multiple = TRUE, selected=providers[1]),
-                      textInput("genes", "Genes:", "ABCB10"),
+                      textInput("genes", "Genes:", initial.genes),
                       submitButton("Find Interactions")
                       ),
        mainPanel(
@@ -33,11 +38,18 @@ uiWidgets <- pageWithSidebar(
 serverFunction <- function(input, output)
 {
     findInteractions <- reactive({
+       desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider")
        genes <- cleanGenes(input$genes)
+       if(length(genes) == 0)
+           return(empty.data.frame)
        current.providers <- input$providers
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
        tbl <- interactions(refnet, id=genes, provider=current.providers, quiet=FALSE)
        printf("dim(tbl): %d x %d", nrow(tbl), ncol(tbl))
+       if(nrow(tbl) == 0){
+          printf("nrow 0, returning empty data frame")
+          return(empty.data.frame)
+          }
        #tbl2 <- addGeneInfo(idMapper, tbl)
        tbl2 <- tbl
        desired.columns <- c("A.name", "B.name", "type", "publicationID", "A", "B", "detectionMethod", "provider")
