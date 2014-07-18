@@ -47,9 +47,41 @@ simplify.pubmed.ids <- function(tbl)
                           
 } # simplify.psicquic.stings
 #----------------------------------------------------------------------------------------------------
+scriptsAndStyles <- function()
+{
+   return(c( 
+         '<script src="shared/datatables/js/jquery.dataTables.min.js"></script>',
+         '<script class="shiny-html-output" 
+                  src= "/js/DTbinding.js"></script>',
+         '<link rel = "stylesheet", 
+                type = "text/css", 
+                href = "shared/datatables/css/DT_bootstrap.css"></link>',
+         '<style type="text/css">
+                .rowsSelected td{
+                background-color: rgba(112,164,255,0.2) 
+                !important})  </style>',
+         '<style type="text/css"> .selectable div table tbody tr{
+                cursor: hand; cursor: pointer;}</style>',
+         '<style type="text/css"> .selectable div table tbody tr td{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;} </style>',
+         '<style type="text/css">
+                #myTable tfoot {display:table-header-group;}</style>',
+         '<style type="text/css">
+               th, td { white-space: nowrap; }</style>'))
+          
+
+} # scriptsAndStyles
+#----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
    tags$head(
-      tags$style(HTML("th, td { white-space: nowrap; }"))),
+      #tags$style(HTML("th, td { white-space: nowrap; }"))
+      HTML(scriptsAndStyles())
+       ),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
                     
