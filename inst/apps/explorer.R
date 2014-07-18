@@ -47,8 +47,10 @@ simplify.pubmed.ids <- function(tbl)
                           
 } # simplify.psicquic.stings
 #----------------------------------------------------------------------------------------------------
-uiWidgets <- fluidPage(#theme="bootstrap.css", #pageWithSidebar(
-       headerPanel("RefNet (Homo sapiens)"),
+uiWidgets <- fluidPage(
+   tags$head(
+      tags$style(HTML("th, td { white-space: nowrap; }"))),
+   headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
                     
        selectizeInput(inputId='providers', label='providers',
