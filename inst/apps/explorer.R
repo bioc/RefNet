@@ -1,10 +1,24 @@
+# source("explorer.R"); 
+# 
+library(httr)
+#----------------------------------------------------------------------------------------------------
+#url.exists <- function(url) {
+#   HEAD(url)$headers$status == "200"
+#   }
+#----------------------------------------------------------------------------------------------------
+
 library(shiny)
 library(RefNet)
 if(!exists("refnet"))
     refnet <- RefNet()
 
-if(!exists("idMapper"))
-    idMapper <- IDMapper("9606")
+if(!exists("idMapper")){
+     # check (separately) 3 steps which must be working to create an IDMapper
+#   stopifnot(url.exists("http://www.biomart.org"))
+#   mart <- useMart(biomart = "ensembl")
+#   stopifnot("hsapiens_gene_ensembl" %in% listDatasets(mart)[,1])
+   idMapper <- IDMapper("9606")
+   }
 
 providers <- unlist(providers(refnet), use.names=FALSE)
 initial.genes <- "ABCB10"
@@ -50,7 +64,7 @@ simplify.pubmed.ids <- function(tbl)
 scriptsAndStyles <- function()
 {
    return(c( 
-         '<script src="shared/datatables/js/jquery.dataTables.min.js"></script>',
+         '<script src="shared/datatables/js/jquery.dataTables.js"></script>',
          '<script class="shiny-html-output" 
                   src= "/js/DTbinding.js"></script>',
          '<link rel = "stylesheet", 
@@ -102,7 +116,15 @@ rowSelectableDataTableOutput <- function(outputId, ...)
          '<style type="text/css">
                 #myTable tfoot {display:table-header-group;}
                th, td { white-space: nowrap; }
-         </style>')
+         </style>',
+         '<script> $(document).ready(function() {$("#table").on("click", "tr", function () {
+                     console.log("table clicked!");
+                     var Aname = $("td", this).eq(0).text();
+                     var Bname = $("td", this).eq(1).text();
+                     var type  = $("td", this).eq(2).text();
+                     var pmid =  $("td", this).eq(5).text();
+                     alert(Aname + " (" + type + ") " + Bname + ": " + pmid);
+                     })})</script>')
      
      tagList(
          singleton(
@@ -122,9 +144,11 @@ uiWidgets <- fluidPage(
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
                     
+
        selectizeInput(inputId='providers', label='providers',
-                      choices = providers, multiple = TRUE), # , selected=providers[1]),
+                      choices = providers, multiple = TRUE, selected="APID"),
                       textInput("genes", "Genes:", initial.genes),
+                      #actionButton("findInteractionsButton", "Find Interactions")
                       submitButton("Find Interactions")
                       ),
        mainPanel(
@@ -139,9 +163,19 @@ uiWidgets <- fluidPage(
        ) # uiWidgets
 
 #----------------------------------------------------------------------------------------------------
-serverFunction <- function(input, output)
+serverFunction <- function(input, output, session)
 {
+    pubmedURL <- reactive({
+        paste0("http://www.ncbi.nlm.nih.gov/pubmed/?term=", input$pmid)
+        })
+
+    observe({
+       if(!is.na(initial.genes))
+          updateTextInput(session, inputId="genes", value=initial.genes)
+       })
+
     findInteractions <- reactive({
+       printf("reactive findInteractions running")
        desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider")
        genes <- cleanGenes(input$genes)
        if(length(genes) == 0)
@@ -184,7 +218,7 @@ serverFunction <- function(input, output)
           seamless="seamless",
           src="http://www.ncbi.nlm.nih.gov/gene/2177")})
 
-      datatable.options <- list(bFilter=TRUE, bSortClasses = TRUE)
+      datatable.options <- list() # list(bFilter=TRUE, bSortClasses = TRUE)
       output$table <- renderDataTable(findInteractions(),options=datatable.options)
 
 } # serverFunction
@@ -200,7 +234,13 @@ serverFunction <- function(input, output)
              quiet=TRUE,
              port=9999)
 {  
+    if(!is.na(id))
+        initial.genes <<- id
+    
     app <- list(ui=uiWidgets, server=serverFunction)
+    printf("about to runApp, initial.genes: %s", paste(initial.genes, collapse=","))
+
+
     runApp(app)
 
 } # .explore
