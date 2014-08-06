@@ -158,6 +158,7 @@ uiWidgets <- fluidPage(
                          choices = providers, multiple = TRUE, selected="APID"),
           textInput("genes", "Genes:", initial.genes),
           #submitButton("Find Interactions"),
+          actionButton("goButton", "Find interactions"),
           htmlOutput("hiddenPmidDiv")
           ),
        mainPanel(
@@ -188,8 +189,11 @@ serverFunction <- function(input, output, session)
        })
 
     findInteractions <- reactive({
+       input$goButton
        printf("reactive findInteractions running")
        desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider")
+       isolate(input$genes)
+       isolate(input$providers)
        genes <- cleanGenes(input$genes)
        printf("       genes: %s", paste(genes, collapse=","))
        #browser()
@@ -199,8 +203,8 @@ serverFunction <- function(input, output, session)
            return()
        if(length(genes) == 0)
            return(empty.data.frame)
-       #current.providers <- input$providers
-       current.providers <- "APID"
+       current.providers <- input$providers
+       #current.providers <- "APID"
        printf("   providers: %s", paste(current.providers, collapse=","))
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
        tbl <- interactions(refnet, id=genes, provider=current.providers, quiet=FALSE, species="9606")
