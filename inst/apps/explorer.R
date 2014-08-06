@@ -116,15 +116,7 @@ rowSelectableDataTableOutput <- function(outputId, ...)
          '<style type="text/css">
                 #myTable tfoot {display:table-header-group;}
                th, td { white-space: nowrap; }
-         </style>',
-         '<script> $(document).ready(function() {$("#table").on("click", "tr", function () {
-                     console.log("table clicked!");
-                     var Aname = $("td", this).eq(0).text();
-                     var Bname = $("td", this).eq(1).text();
-                     var type  = $("td", this).eq(2).text();
-                     var pmid =  $("td", this).eq(5).text();
-                     alert(Aname + " (" + type + ") " + Bname + ": " + pmid);
-                     })})</script>')
+         </style>')
      
      tagList(
          singleton(
@@ -135,22 +127,39 @@ rowSelectableDataTableOutput <- function(outputId, ...)
 
 } # rowSelectableDataTableOutput
 #----------------------------------------------------------------------------------------------------
+cssAndJavascript <- function()
+{
+    text <-  '<script> $(document).ready(function() {$("#table").on("click", "tr", function () {
+                     console.log("table clicked!");
+                     var Aname = $("td", this).eq(0).text();
+                     var Bname = $("td", this).eq(1).text();
+                     var type  = $("td", this).eq(2).text();
+                     var pmid =  $("td", this).eq(5).text();
+                     window.pmid = pmid;
+                     $("#hiddenPmidDiv").html(pmid)
+                     Shiny.onInputChange("hiddenPmidDiv", pmid);
+                     //alert(Aname + " (" + type + ") " + Bname + ": " + pmid);
+                     })})
+               </script>'
+
+    return(text)
+
+} # cssAndJavascript
+#----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
    #tags$head(
       #tags$style(HTML("th, td { white-space: nowrap; }"))
       #HTML(scriptsAndStyles()),
-      #div(id="rowSelTable", class = "shiny-datatable-output selectable")
+      #div(id="rowSeolTable", class = "shiny-datatable-output selectable")
       #),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
-                    
-
-       selectizeInput(inputId='providers', label='providers',
-                      choices = providers, multiple = TRUE, selected="APID"),
-                      textInput("genes", "Genes:", initial.genes),
-                      #actionButton("findInteractionsButton", "Find Interactions")
-                      submitButton("Find Interactions")
-                      ),
+          selectizeInput(inputId='providers', label='providers',
+                         choices = providers, multiple = TRUE, selected="APID"),
+          textInput("genes", "Genes:", initial.genes),
+          submitButton("Find Interactions"),
+          htmlOutput("hiddenPmidDiv")
+          ),
        mainPanel(
           tabsetPanel(
                tabPanel('interactions', rowSelectableDataTableOutput(outputId="table")),
@@ -158,7 +167,8 @@ uiWidgets <- fluidPage(
                tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
                tabPanel("A", htmlOutput("geneA")),
                tabPanel("B", htmlOutput("geneB"))
-             )
+             ),
+          HTML(cssAndJavascript())
           )
        ) # uiWidgets
 
@@ -166,7 +176,11 @@ uiWidgets <- fluidPage(
 serverFunction <- function(input, output, session)
 {
     pubmedURL <- reactive({
-        paste0("http://www.ncbi.nlm.nih.gov/pubmed/?term=", input$pmid)
+        printf("entering pubmedURL reactive function");
+        browser()
+        result <- paste0("http://www.ncbi.nlm.nih.gov/pubmed/?term=", input$hiddenPmidDiv)
+        print(result)
+        result
         })
 
     observe({
@@ -178,9 +192,16 @@ serverFunction <- function(input, output, session)
        printf("reactive findInteractions running")
        desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider")
        genes <- cleanGenes(input$genes)
+       printf("       genes: %s", paste(genes, collapse=","))
+       #browser()
+       if(length(genes) == 0)
+           return()
+       if(nchar(genes) == 0)
+           return()
        if(length(genes) == 0)
            return(empty.data.frame)
        current.providers <- input$providers
+       printf("   providers: %s", paste(current.providers, collapse=","))
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
        tbl <- interactions(refnet, id=genes, provider=current.providers, quiet=FALSE, species="9606")
        printf("dim(tbl): %d x %d", nrow(tbl), ncol(tbl))
@@ -198,11 +219,14 @@ serverFunction <- function(input, output, session)
        }) # reactive
 
      output$pubmedAbstract <- renderUI({
+        printf("pmid? %s", input$pmid);
+        printf("url:  %s", pubmedURL());
         tags$iframe(
           height="500px",
           width="800px",
           seamless="seamless",
-          src="http://www.ncbi.nlm.nih.gov/pubmed/?term=15115758")})
+          src=pubmedURL())})
+          #src="http://www.ncbi.nlm.nih.gov/pubmed/?term=15115758")})
 
      output$geneA <- renderUI({
         tags$iframe(
