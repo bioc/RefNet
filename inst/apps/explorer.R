@@ -127,7 +127,7 @@ rowSelectableDataTableOutput <- function(outputId, ...)
 
 } # rowSelectableDataTableOutput
 #----------------------------------------------------------------------------------------------------
-cssAndJavascript <- function()
+javascript <- function()
 {
     text <-  '<script> $(document).ready(function() {$("#table").on("click", "tr", function () {
                      console.log("table clicked!");
@@ -144,7 +144,7 @@ cssAndJavascript <- function()
 
     return(text)
 
-} # cssAndJavascript
+} # javascript
 #----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
    #tags$head(
@@ -154,10 +154,10 @@ uiWidgets <- fluidPage(
       #),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
-          selectizeInput(inputId='providers', label='providers',
-                         choices = providers, multiple = TRUE, selected="APID"),
+          #selectizeInput(inputId='providers', label='providers',
+          #               choices = providers, multiple = TRUE, selected="APID"),
           textInput("genes", "Genes:", initial.genes),
-          submitButton("Find Interactions"),
+          #submitButton("Find Interactions"),
           htmlOutput("hiddenPmidDiv")
           ),
        mainPanel(
@@ -168,7 +168,7 @@ uiWidgets <- fluidPage(
                tabPanel("A", htmlOutput("geneA")),
                tabPanel("B", htmlOutput("geneB"))
              ),
-          HTML(cssAndJavascript())
+          HTML(javascript())
           )
        ) # uiWidgets
 
@@ -177,7 +177,6 @@ serverFunction <- function(input, output, session)
 {
     pubmedURL <- reactive({
         printf("entering pubmedURL reactive function");
-        browser()
         result <- paste0("http://www.ncbi.nlm.nih.gov/pubmed/?term=", input$hiddenPmidDiv)
         print(result)
         result
@@ -200,7 +199,8 @@ serverFunction <- function(input, output, session)
            return()
        if(length(genes) == 0)
            return(empty.data.frame)
-       current.providers <- input$providers
+       #current.providers <- input$providers
+       current.providers <- "APID"
        printf("   providers: %s", paste(current.providers, collapse=","))
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
        tbl <- interactions(refnet, id=genes, provider=current.providers, quiet=FALSE, species="9606")
