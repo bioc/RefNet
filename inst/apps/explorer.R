@@ -154,8 +154,8 @@ uiWidgets <- fluidPage(
       #),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
-          #selectizeInput(inputId='providers', label='providers',
-          #               choices = providers, multiple = TRUE, selected="APID"),
+          selectizeInput(inputId='providers', label='providers',
+                         choices = providers, multiple = TRUE, selected="APID"),
           textInput("genes", "Genes:", initial.genes),
           #submitButton("Find Interactions"),
           htmlOutput("hiddenPmidDiv")
