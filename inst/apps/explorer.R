@@ -2,21 +2,13 @@
 # 
 library(httr)
 #----------------------------------------------------------------------------------------------------
-#url.exists <- function(url) {
-#   HEAD(url)$headers$status == "200"
-#   }
-#----------------------------------------------------------------------------------------------------
-
 library(shiny)
 library(RefNet)
+
 if(!exists("refnet"))
     refnet <- RefNet()
 
 if(!exists("idMapper")){
-     # check (separately) 3 steps which must be working to create an IDMapper
-#   stopifnot(url.exists("http://www.biomart.org"))
-#   mart <- useMart(biomart = "ensembl")
-#   stopifnot("hsapiens_gene_ensembl" %in% listDatasets(mart)[,1])
    idMapper <- IDMapper("9606")
    }
 
@@ -25,8 +17,8 @@ initial.genes <- "ABCB10"
 initial.genes <- ""
 initial.providers <- ""
 
-empty.data.frame <- data.frame(A=c("a"), B=("b"), type="type", publicationID="", A="", B="",
-                               detectionMethod="", provider="", stringsAsFactors=FALSE)[-1,]
+empty.data.frame <- data.frame(A.name=c(""), B.name=(""), type="", publicationID="", A="", B="",
+                               detectionMethod="", provider="", stringsAsFactors=FALSE)
 
 #----------------------------------------------------------------------------------------------------
 cleanGenes <- function(s)
@@ -138,7 +130,7 @@ javascript <- function()
                      var type  = $("td", this).eq(2).text();
                      var pmid =  $("td", this).eq(3).text();
                      var A_id = $("td", this).eq(6).text();
-                     //var B_id = $("td", this).eq(7).text();
+                     var B_id = $("td", this).eq(7).text();
                      console.log("A_id: " + A_id);
                      window.pmid = pmid;
                      console.log("pmid ? " + pmid)
@@ -155,8 +147,8 @@ javascript <- function()
                      $("#hiddenGeneA_id_Div").html(A_id)
                      Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
 
-                     //$("#hiddenGeneB_id_Div").html(B_id)
-                     //Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
+                     $("#hiddenGeneB_id_Div").html(B_id)
+                     Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
                      })})
                </script>'
 
@@ -209,7 +201,6 @@ serverFunction <- function(input, output, session)
 
     geneAURL <-  reactive({
         printf("entering geneAURL reactive function");
-        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneADiv)
         result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneA_id_Div)
         print(result)
         result
@@ -217,8 +208,8 @@ serverFunction <- function(input, output, session)
 
     geneBURL <-  reactive({
         printf("entering geneBURL reactive function");
-        result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneBDiv)
-        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneB_id_Div)
+        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneBDiv)
+        result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneB_id_Div)
         print(result)
         result
         })
@@ -252,11 +243,14 @@ serverFunction <- function(input, output, session)
        tbl2 <- addGeneInfo(idMapper, tbl)
        xxxx <<- tbl2
        #tbl2 <- tbl
-       desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider", "A.id", "B.id")
+       desired.columns <- c("A.name", "B.name", "type", "publicationID", "detectionMethod", "provider", "A.id", "B.id")
        actual.columns <- intersect(desired.columns, colnames(tbl2))
+       if(length(actual.columns) == length(desired.columns))
+          actual.columns <- desired.columns
        tbl3 <- unique(tbl2[, actual.columns])
        printf("simplifying...")
        tbl4 <- simplify.psicquic.strings(tbl3)
+       printf("colnames: %s", paste(colnames(tbl4), collapse=","))
        simplify.pubmed.ids(tbl4)
        }) # reactive
 
@@ -277,11 +271,12 @@ serverFunction <- function(input, output, session)
           src=geneAURL())})
 
      output$geneB <- renderUI({
+        input$hiddenGeneB_id_Div
         tags$iframe(
           height="500px",
           width="800px",
           seamless="seamless",
-          src="http://www.ncbi.nlm.nih.gov/gene/2177")})
+          src=geneBURL())})
 
       datatable.options <- list() # list(bFilter=TRUE, bSortClasses = TRUE)
       output$table <- renderDataTable(findInteractions(),options=datatable.options)
