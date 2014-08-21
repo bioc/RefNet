@@ -137,19 +137,24 @@ javascript <- function()
                      var Bname = $("td", this).eq(1).text();
                      var type  = $("td", this).eq(2).text();
                      var pmid =  $("td", this).eq(3).text();
-                     //var A_id = $("td", this).eq(6).text();
+                     var A_id = $("td", this).eq(6).text();
                      //var B_id = $("td", this).eq(7).text();
-                     //console.log("A_id: " + A_id);
+                     console.log("A_id: " + A_id);
                      window.pmid = pmid;
                      console.log("pmid ? " + pmid)
+
                      $("#hiddenPmidDiv").html(pmid)
                      Shiny.onInputChange("hiddenPmidDiv", pmid);
+
                      $("#hiddenGeneADiv").html(Aname)
                      Shiny.onInputChange("hiddenGeneADiv", Aname);
+
                      $("#hiddenGeneBDiv").html(Bname)
                      Shiny.onInputChange("hiddenGeneBDiv", Bname);
+
                      //$("#hiddenGeneA_id_Div").html(A_id)
                      //Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
+
                      //$("#hiddenGeneB_id_Div").html(B_id)
                      //Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
                      })})
@@ -176,7 +181,7 @@ uiWidgets <- fluidPage(
           actionButton("goButton", "Find interactions"),
           htmlOutput("hiddenPmidDiv"),
           htmlOutput("hiddenGeneADiv"),
-          htmlOutput("hiddenGeneBDiv")
+          htmlOutput("hiddenGeneBDiv"),
           htmlOutput("hiddenGeneA_id_Div"),
           htmlOutput("hiddenGeneB_id_Div")
           ),
