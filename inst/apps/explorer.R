@@ -152,8 +152,8 @@ javascript <- function()
                      $("#hiddenGeneBDiv").html(Bname)
                      Shiny.onInputChange("hiddenGeneBDiv", Bname);
 
-                     //$("#hiddenGeneA_id_Div").html(A_id)
-                     //Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
+                     $("#hiddenGeneA_id_Div").html(A_id)
+                     Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
 
                      //$("#hiddenGeneB_id_Div").html(B_id)
                      //Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
@@ -209,8 +209,8 @@ serverFunction <- function(input, output, session)
 
     geneAURL <-  reactive({
         printf("entering geneAURL reactive function");
-        result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneADiv)
-        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneA_id_Div)
+        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneADiv)
+        result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneA_id_Div)
         print(result)
         result
         })
