@@ -23,6 +23,8 @@ if(!exists("idMapper")){
 providers <- unlist(providers(refnet), use.names=FALSE)
 initial.genes <- "ABCB10"
 initial.genes <- ""
+initial.providers <- ""
+
 empty.data.frame <- data.frame(A=c("a"), B=("b"), type="type", publicationID="", A="", B="",
                                detectionMethod="", provider="", stringsAsFactors=FALSE)[-1,]
 
@@ -134,11 +136,22 @@ javascript <- function()
                      var Aname = $("td", this).eq(0).text();
                      var Bname = $("td", this).eq(1).text();
                      var type  = $("td", this).eq(2).text();
-                     var pmid =  $("td", this).eq(5).text();
+                     var pmid =  $("td", this).eq(3).text();
+                     //var A_id = $("td", this).eq(6).text();
+                     //var B_id = $("td", this).eq(7).text();
+                     //console.log("A_id: " + A_id);
                      window.pmid = pmid;
+                     console.log("pmid ? " + pmid)
                      $("#hiddenPmidDiv").html(pmid)
                      Shiny.onInputChange("hiddenPmidDiv", pmid);
-                     //alert(Aname + " (" + type + ") " + Bname + ": " + pmid);
+                     $("#hiddenGeneADiv").html(Aname)
+                     Shiny.onInputChange("hiddenGeneADiv", Aname);
+                     $("#hiddenGeneBDiv").html(Bname)
+                     Shiny.onInputChange("hiddenGeneBDiv", Bname);
+                     //$("#hiddenGeneA_id_Div").html(A_id)
+                     //Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
+                     //$("#hiddenGeneB_id_Div").html(B_id)
+                     //Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
                      })})
                </script>'
 
@@ -155,11 +168,17 @@ uiWidgets <- fluidPage(
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=2,
           selectizeInput(inputId='providers', label='providers',
-                         choices = providers, multiple = TRUE, selected="APID"),
+                         choices = providers, multiple = TRUE,
+                         #selected = initial.providers),
+                         selected="mentha"),
           textInput("genes", "Genes:", initial.genes),
           #submitButton("Find Interactions"),
           actionButton("goButton", "Find interactions"),
-          htmlOutput("hiddenPmidDiv")
+          htmlOutput("hiddenPmidDiv"),
+          htmlOutput("hiddenGeneADiv"),
+          htmlOutput("hiddenGeneBDiv")
+          htmlOutput("hiddenGeneA_id_Div"),
+          htmlOutput("hiddenGeneB_id_Div")
           ),
        mainPanel(
           tabsetPanel(
@@ -183,6 +202,23 @@ serverFunction <- function(input, output, session)
         result
         })
 
+    geneAURL <-  reactive({
+        printf("entering geneAURL reactive function");
+        result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneADiv)
+        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneA_id_Div)
+        print(result)
+        result
+        })
+
+    geneBURL <-  reactive({
+        printf("entering geneBURL reactive function");
+        result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneBDiv)
+        #result <- paste0("http://www.ncbi.nlm.nih.gov/gene/?term=", input$hiddenGeneB_id_Div)
+        print(result)
+        result
+        })
+
+
     observe({
        if(!is.na(initial.genes))
           updateTextInput(session, inputId="genes", value=initial.genes)
@@ -191,20 +227,14 @@ serverFunction <- function(input, output, session)
     findInteractions <- reactive({
        input$goButton
        printf("reactive findInteractions running")
-       desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider")
-       isolate(input$genes)
-       isolate(input$providers)
-       genes <- cleanGenes(input$genes)
+       genes <- cleanGenes(isolate(input$genes))
        printf("       genes: %s", paste(genes, collapse=","))
-       #browser()
-       if(length(genes) == 0)
-           return()
-       if(nchar(genes) == 0)
-           return()
        if(length(genes) == 0)
            return(empty.data.frame)
-       current.providers <- input$providers
-       #current.providers <- "APID"
+       if(nchar(genes) == 0)
+           return(empty.data.frame)
+       current.providers <- isolate(input$providers)
+       printf("current.providers: %s", paste(current.providers, collapse=","))
        printf("   providers: %s", paste(current.providers, collapse=","))
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
        tbl <- interactions(refnet, id=genes, provider=current.providers, quiet=FALSE, species="9606")
@@ -213,11 +243,14 @@ serverFunction <- function(input, output, session)
           printf("nrow 0, returning empty data frame")
           return(empty.data.frame)
           }
+       printf("addGeneInfo...")
        tbl2 <- addGeneInfo(idMapper, tbl)
+       xxxx <<- tbl2
        #tbl2 <- tbl
-       desired.columns <- c("A.name", "B.name", "type",  "detectionMethod", "provider", "publicationID", "A", "B")
+       desired.columns <- c("A", "B", "type", "publicationID", "A", "B", "detectionMethod", "provider", "A.id", "B.id")
        actual.columns <- intersect(desired.columns, colnames(tbl2))
        tbl3 <- unique(tbl2[, actual.columns])
+       printf("simplifying...")
        tbl4 <- simplify.psicquic.strings(tbl3)
        simplify.pubmed.ids(tbl4)
        }) # reactive
@@ -230,14 +263,13 @@ serverFunction <- function(input, output, session)
           width="800px",
           seamless="seamless",
           src=pubmedURL())})
-          #src="http://www.ncbi.nlm.nih.gov/pubmed/?term=15115758")})
 
      output$geneA <- renderUI({
         tags$iframe(
           height="500px",
           width="800px",
           seamless="seamless",
-          src="http://www.ncbi.nlm.nih.gov/gene/675")})
+          src=geneAURL())})
 
      output$geneB <- renderUI({
         tags$iframe(
@@ -262,8 +294,11 @@ serverFunction <- function(input, output, session)
              quiet=TRUE,
              port=9999)
 {  
-    if(!is.na(id))
+    if(!all(is.na(id)))
         initial.genes <<- id
+    
+    if(!all(is.na(provider)))
+        initial.providers <<- provider
     
     app <- list(ui=uiWidgets, server=serverFunction)
     printf("about to runApp, initial.genes: %s", paste(initial.genes, collapse=","))
