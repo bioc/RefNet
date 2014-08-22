@@ -1,6 +1,6 @@
 # source("explorer.R"); 
 # 
-library(httr)
+#library(httr)
 #----------------------------------------------------------------------------------------------------
 library(shiny)
 library(RefNet)
@@ -12,10 +12,17 @@ if(!exists("idMapper")){
    idMapper <- IDMapper("9606")
    }
 
+GLOBALS <- new.env(parent=emptyenv())
+
 providers <- unlist(providers(refnet), use.names=FALSE)
-initial.genes <- "ABCB10"
-initial.genes <- ""
-initial.providers <- ""
+providers.order <- order(tolower(providers))
+providers <- providers[providers.order]
+
+
+
+# assigned in .explore, read in shiny-compliant functions which allow no extra arguments
+initial.genes <<- ""
+initial.providers <<- ""
 
 empty.data.frame <- data.frame(A.name=c(""), B.name=(""), type="", publicationID="", A="", B="",
                                detectionMethod="", provider="", stringsAsFactors=FALSE)
@@ -157,19 +164,15 @@ javascript <- function()
 } # javascript
 #----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
-   #tags$head(
-      #tags$style(HTML("th, td { white-space: nowrap; }"))
-      #HTML(scriptsAndStyles()),
-      #div(id="rowSeolTable", class = "shiny-datatable-output selectable")
-      #),
    headerPanel("RefNet (Homo sapiens)"),
-       sidebarPanel(width=2,
+       sidebarPanel(width=3,
           selectizeInput(inputId='providers', label='providers',
                          choices = providers, multiple = TRUE,
+                         selected = "mentha"),
                          #selected = initial.providers),
-                         selected="mentha"),
+                         #selected=GLOBALS[["initial.providers"]]),
+          #textInput("genes", "Genes:", GLOBALS[["initial.genes"]]),
           textInput("genes", "Genes:", initial.genes),
-          #submitButton("Find Interactions"),
           actionButton("goButton", "Find interactions"),
           htmlOutput("hiddenPmidDiv"),
           htmlOutput("hiddenGeneADiv"),
@@ -180,7 +183,6 @@ uiWidgets <- fluidPage(
        mainPanel(
           tabsetPanel(
                tabPanel('interactions', rowSelectableDataTableOutput(outputId="table")),
-               #tabPanel('rowSelTbl', selectableDataTableOutput(outputId="rowSelTable",...)),
                tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
                tabPanel("A", htmlOutput("geneA")),
                tabPanel("B", htmlOutput("geneB"))
@@ -223,6 +225,7 @@ serverFunction <- function(input, output, session)
     findInteractions <- reactive({
        input$goButton
        printf("reactive findInteractions running")
+       printf("initial.providers: %s", initial.providers)
        genes <- cleanGenes(isolate(input$genes))
        printf("       genes: %s", paste(genes, collapse=","))
        if(length(genes) == 0)
@@ -294,15 +297,17 @@ serverFunction <- function(input, output, session)
              quiet=TRUE,
              port=9999)
 {  
+    initial.genes <<- ""
+    initial.providers <<- ""
+    
     if(!all(is.na(id)))
         initial.genes <<- id
-    
+
     if(!all(is.na(provider)))
         initial.providers <<- provider
     
     app <- list(ui=uiWidgets, server=serverFunction)
     printf("about to runApp, initial.genes: %s", paste(initial.genes, collapse=","))
-
 
     runApp(app)
 
