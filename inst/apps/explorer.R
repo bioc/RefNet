@@ -16,7 +16,7 @@ GLOBALS <- new.env(parent=emptyenv())
 
 providers <- unlist(providers(refnet), use.names=FALSE)
 providers.order <- order(tolower(providers))
-providers <- providers[providers.order]
+providers <- c("ALL providers", providers[providers.order])
 
 
 
@@ -30,7 +30,8 @@ empty.data.frame <- data.frame(A.name=c(""), B.name=(""), type="", publicationID
 #----------------------------------------------------------------------------------------------------
 cleanGenes <- function(s)
 {
-   genes.raw <- sub("[[:space:]]+$","", s)
+   strstrip = function (s) sub(' +$', '', sub ('^ +', '', s));
+   genes.raw <- strstrip(s)
    toupper(strsplit(genes.raw, " +")[[1]])
 }
 #----------------------------------------------------------------------------------------------------
@@ -62,37 +63,7 @@ simplify.pubmed.ids <- function(tbl)
                           
 } # simplify.psicquic.stings
 #----------------------------------------------------------------------------------------------------
-scriptsAndStyles <- function()
-{
-   return(c( 
-         '<script src="shared/datatables/js/jquery.dataTables.js"></script>',
-         '<script class="shiny-html-output" 
-                  src= "/js/DTbinding.js"></script>',
-         '<link rel = "stylesheet", 
-                type = "text/css", 
-                href = "shared/datatables/css/DT_bootstrap.css"></link>',
-         '<style type="text/css">
-                .rowsSelected td{
-                background-color: rgba(112,164,255,0.2) 
-                !important})  </style>',
-         '<style type="text/css"> .selectable div table tbody tr{
-                cursor: hand; cursor: pointer;}</style>',
-         '<style type="text/css"> .selectable div table tbody tr td{
-                -webkit-touch-callout: none;
-                -webkit-user-select: none;
-                -khtml-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;} </style>',
-         '<style type="text/css">
-                #myTable tfoot {display:table-header-group;}</style>',
-         '<style type="text/css">
-               th, td { white-space: nowrap; }</style>'))
-          
-
-} # scriptsAndStyles
-#----------------------------------------------------------------------------------------------------
-rowSelectableDataTableOutput <- function(outputId, ...)
+rowSelectableDataTable <- function(outputId, ...)
 {
      origStyle<- c( 
          '<script src="shared/datatables/js/jquery.dataTables.min.js"></script>',
@@ -126,7 +97,7 @@ rowSelectableDataTableOutput <- function(outputId, ...)
          div(id = outputId, class = "shiny-datatable-output selectable")
          )
 
-} # rowSelectableDataTableOutput
+} # rowSelectableDataTable
 #----------------------------------------------------------------------------------------------------
 javascript <- function()
 {
@@ -138,6 +109,9 @@ javascript <- function()
                      var pmid =  $("td", this).eq(3).text();
                      var A_id = $("td", this).eq(6).text();
                      var B_id = $("td", this).eq(7).text();
+                     //saveButton = $("#saveInteractionButton");
+                     //console.log("saveButton: " + saveButton);
+                     //saveButton.click(function() console.log("save!"));
                      console.log("A_id: " + A_id);
                      window.pmid = pmid;
                      console.log("pmid ? " + pmid)
@@ -164,6 +138,7 @@ javascript <- function()
 } # javascript
 #----------------------------------------------------------------------------------------------------
 uiWidgets <- fluidPage(
+   HTML(javascript()),
    headerPanel("RefNet (Homo sapiens)"),
        sidebarPanel(width=3,
           selectizeInput(inputId='providers', label='providers',
@@ -174,6 +149,7 @@ uiWidgets <- fluidPage(
           #textInput("genes", "Genes:", GLOBALS[["initial.genes"]]),
           textInput("genes", "Genes:", initial.genes),
           actionButton("goButton", "Find interactions"),
+          actionButton("saveInteractionButton", "Save Interaction"),
           htmlOutput("hiddenPmidDiv"),
           htmlOutput("hiddenGeneADiv"),
           htmlOutput("hiddenGeneBDiv"),
@@ -182,12 +158,13 @@ uiWidgets <- fluidPage(
           ),
        mainPanel(
           tabsetPanel(
-               tabPanel('interactions', rowSelectableDataTableOutput(outputId="table")),
+               tabPanel('interactions', rowSelectableDataTable(outputId="table")),
                tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
                tabPanel("A", htmlOutput("geneA")),
-               tabPanel("B", htmlOutput("geneB"))
-             ),
-          HTML(javascript())
+               tabPanel("B", htmlOutput("geneB")),
+               tabPanel("Saved Interactions", rowSelectableDataTable(outputId="selectedInteractionsTable"))
+             )
+          #HTML(javascript())
           )
        ) # uiWidgets
 
@@ -221,7 +198,7 @@ serverFunction <- function(input, output, session)
        if(!is.na(initial.genes))
           updateTextInput(session, inputId="genes", value=initial.genes)
        })
-
+        
     findInteractions <- reactive({
        input$goButton
        printf("reactive findInteractions running")
@@ -230,12 +207,16 @@ serverFunction <- function(input, output, session)
        printf("       genes: %s", paste(genes, collapse=","))
        if(length(genes) == 0)
            return(empty.data.frame)
-       if(nchar(genes) == 0)
+       if(all(nchar(genes) == 0))
            return(empty.data.frame)
        current.providers <- isolate(input$providers)
        printf("current.providers: %s", paste(current.providers, collapse=","))
        printf("   providers: %s", paste(current.providers, collapse=","))
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
+       if("ALL providers" %in% current.providers) {
+          current.providers = NA;
+          printf("querying ALL providers")
+          }
        tbl <- interactions(refnet, id=genes, provider=current.providers, quiet=FALSE, species="9606")
        printf("dim(tbl): %d x %d", nrow(tbl), ncol(tbl))
        if(nrow(tbl) == 0){
@@ -243,6 +224,16 @@ serverFunction <- function(input, output, session)
           return(empty.data.frame)
           }
        printf("addGeneInfo...")
+          # the RefNet native data tables have been updated, using
+          #    A|B.name rather than A|B.common
+          #    A|B.id   rather than A|B.canonical
+          # but these new versions and their new column names are not yet
+          # avaialable via the AnnotationHub
+          # catch them here so that they can be recognized as "already name-mapped"
+          # and thus so that the idMapper will let them stand
+       colnames(tbl) <- sub(".common$", ".name", colnames(tbl))
+       colnames(tbl) <- sub(".canonical$", ".id", colnames(tbl))
+
        tbl2 <- addGeneInfo(idMapper, tbl)
        xxxx <<- tbl2
        #tbl2 <- tbl
@@ -256,6 +247,7 @@ serverFunction <- function(input, output, session)
        printf("colnames: %s", paste(colnames(tbl4), collapse=","))
        simplify.pubmed.ids(tbl4)
        }) # reactive
+
 
      output$pubmedAbstract <- renderUI({
         printf("pmid? %s", input$pmid);
@@ -283,6 +275,9 @@ serverFunction <- function(input, output, session)
 
       datatable.options <- list() # list(bFilter=TRUE, bSortClasses = TRUE)
       output$table <- renderDataTable(findInteractions(),options=datatable.options)
+
+      output$selectedInteractionsTable <- renderDataTable(empty.data.frame, options=datatable.options)
+
 
 } # serverFunction
 #----------------------------------------------------------------------------------------------------

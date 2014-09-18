@@ -4,7 +4,8 @@ library(datasets)
 # library(RefNet)
 
 refnet <- RefNet()
-load("tbl.alk.RData")
+idMapper <- IDMapper(species="9606")
+#load("tbl.alk.RData")
 
 cleanGenes <- function(s){
    genes.raw <- sub("[[:space:]]+$","", s)
