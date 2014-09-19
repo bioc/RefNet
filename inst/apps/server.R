@@ -8,7 +8,7 @@ idMapper <- IDMapper(species="9606")
 empty.data.frame <- data.frame(A.name=c(""), B.name=(""), type="", publicationID="", A="", B="",
                                detectionMethod="", provider="", stringsAsFactors=FALSE)[-1,]
 
-
+printf <- function(...)print(noquote(sprintf(...)))
 #----------------------------------------------------------------------------------------------------
 simplify.psicquic.strings <- function(tbl)
 {

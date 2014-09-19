@@ -2,6 +2,9 @@ library(shiny)
 
 # load("tbl.alk.RData")
 # providers <- c("ANY", sort(unique(tbl$provider)))
+
+printf <- function(...)print(noquote(sprintf(...)))
+
 providers <-  c("ALL providers",
                 "gerstein-2012",        "hypoxiaSignaling-2006","stamlabTFs-2012",
                 "recon202",             "APID",                 "BioGrid",
@@ -114,7 +117,6 @@ shinyUI <- fluidPage(
                tabPanel("B", htmlOutput("geneB"))
                #tabPanel("Saved Interactions", rowSelectableDataTable(outputId="selectedInteractionsTable"))
              )
-          #HTML(javascript())
           )
        ) # uiWidgets
 
