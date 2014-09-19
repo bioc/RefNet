@@ -1,20 +1,121 @@
 library(shiny)
-load("tbl.alk.RData")
-providers <- c("ANY", sort(unique(tbl$provider)))
 
-shinyUI(fluidPage(theme="bootstrap.css",
-  titlePanel("RefNet"),
-  sidebarLayout(
-     sidebarPanel(width=2,
-        #actionButton("initRefNetButton", "Initialize RefNet"),
-        selectizeInput(inputId='providers', label='providers',
-                       choices = providers, multiple = TRUE, selected=providers[1]),
-        textInput("genes", "Genes:", "ALK"),
-        submitButton("Find Interactions")
-        ),
-    mainPanel(
-        verbatimTextOutput("summary"),
-        dataTableOutput(outputId="table")
-    )
-  )
-))
+# load("tbl.alk.RData")
+# providers <- c("ANY", sort(unique(tbl$provider)))
+providers <-  c("ALL providers",
+                "gerstein-2012",        "hypoxiaSignaling-2006","stamlabTFs-2012",
+                "recon202",             "APID",                 "BioGrid",
+                "bhf-ucl",              "ChEMBL",               "DIP",
+                "HPIDb",                "InnateDB",             "IntAct",
+                "mentha",               "MPIDB",                "MatrixDB",
+                "MINT",                 "Reactome",             "Reactome-FIs",
+                "STRING",               "BIND",                 "Interoporc",
+                "I2D-IMEx",             "InnateDB-IMEx",        "MolCon",
+                "UniProt",              "MBInfo",               "BindingDB",
+                "VirHostNet",           "Spike",                "BAR")
+
+#----------------------------------------------------------------------------------------------------
+javascript <- function()
+{
+    text <-  '<script> $(document).ready(function() {$("#table").on("click", "tr", function () {
+                     console.log("table clicked!");
+                     var Aname = $("td", this).eq(0).text();
+                     var Bname = $("td", this).eq(1).text();
+                     var type  = $("td", this).eq(2).text();
+                     var pmid =  $("td", this).eq(3).text();
+                     var A_id = $("td", this).eq(6).text();
+                     var B_id = $("td", this).eq(7).text();
+                     //saveButton = $("#saveInteractionButton");
+                     //console.log("saveButton: " + saveButton);
+                     //saveButton.click(function() console.log("save!"));
+                     console.log("A_id: " + A_id);
+                     window.pmid = pmid;
+                     console.log("pmid ? " + pmid)
+
+                     $("#hiddenPmidDiv").html(pmid)
+                     Shiny.onInputChange("hiddenPmidDiv", pmid);
+
+                     $("#hiddenGeneADiv").html(Aname)
+                     Shiny.onInputChange("hiddenGeneADiv", Aname);
+
+                     $("#hiddenGeneBDiv").html(Bname)
+                     Shiny.onInputChange("hiddenGeneBDiv", Bname);
+
+                     $("#hiddenGeneA_id_Div").html(A_id)
+                     Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
+
+                     $("#hiddenGeneB_id_Div").html(B_id)
+                     Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
+                     })})
+               </script>'
+
+    return(text)
+
+} # javascript
+#----------------------------------------------------------------------------------------------------
+rowSelectableDataTable <- function(outputId, ...)
+{
+     origStyle<- c( 
+         '<script src="shared/datatables/js/jquery.dataTables.min.js"></script>',
+         '<script class="shiny-html-output" 
+                  src= "/js/DTbinding.js"></script>',
+         '<link rel = "stylesheet", 
+                type = "text/css", 
+                href = "shared/datatables/css/DT_bootstrap.css"></link>',
+         '<style type="text/css">
+                .rowsSelected td{
+                background-color: rgb(250,0,0) !important}  </style>',
+         '<style type="text/css"> .selectable div table tbody tr{
+                cursor: hand; cursor: pointer;}</style>',
+         '<style type="text/css"> .selectable div table tbody tr td{
+                -webkit-touch-callout: none;
+                -webkit-user-select: none;
+                -khtml-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;} </style>',
+         '<style type="text/css">
+                #myTable tfoot {display:table-header-group;}
+               th, td { white-space: nowrap; }
+         </style>')
+     
+     tagList(
+         singleton(
+             tags$head(HTML(origStyle))
+             ),
+         div(id = outputId, class = "shiny-datatable-output selectable")
+         )
+
+} # rowSelectableDataTable
+#----------------------------------------------------------------------------------------------------
+shinyUI <- fluidPage(
+   HTML(javascript()),
+   headerPanel("RefNet (Homo sapiens)"),
+       sidebarPanel(width=3,
+          selectizeInput(inputId='providers', label='providers',
+                         choices = providers, multiple = TRUE,
+                         selected = NULL), # "mentha"),
+                         #selected = initial.providers),
+                         #selected=GLOBALS[["initial.providers"]]),
+          textInput("genes", "Genes:", value=""),
+          actionButton("goButton", "Find interactions"),
+          #actionButton("saveInteractionButton", "Save Interaction"),
+          htmlOutput("hiddenPmidDiv"),
+          htmlOutput("hiddenGeneADiv"),
+          htmlOutput("hiddenGeneBDiv"),
+          htmlOutput("hiddenGeneA_id_Div"),
+          htmlOutput("hiddenGeneB_id_Div")
+          ),
+       mainPanel(
+          tabsetPanel(
+               tabPanel('interactions', rowSelectableDataTable(outputId="table")),
+               tabPanel("Pubmed Abstract", htmlOutput("pubmedAbstract")),
+               tabPanel("A", htmlOutput("geneA")),
+               tabPanel("B", htmlOutput("geneB"))
+               #tabPanel("Saved Interactions", rowSelectableDataTable(outputId="selectedInteractionsTable"))
+             )
+          #HTML(javascript())
+          )
+       ) # uiWidgets
+
+#----------------------------------------------------------------------------------------------------
