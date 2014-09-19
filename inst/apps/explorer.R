@@ -75,7 +75,7 @@ rowSelectableDataTable <- function(outputId, ...)
          '<style type="text/css">
                 .rowsSelected td{
                 background-color: rgba(250,80,90,0.3) 
-                !important})  </style>',
+                !important}  </style>',
          '<style type="text/css"> .selectable div table tbody tr{
                 cursor: hand; cursor: pointer;}</style>',
          '<style type="text/css"> .selectable div table tbody tr td{
