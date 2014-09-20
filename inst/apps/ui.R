@@ -20,37 +20,75 @@ providers <-  c("ALL providers",
 #----------------------------------------------------------------------------------------------------
 javascript <- function()
 {
-    text <-  '<script> $(document).ready(function() {$("#table").on("click", "tr", function () {
-                     console.log("table clicked!");
-                     var Aname = $("td", this).eq(0).text();
-                     var Bname = $("td", this).eq(1).text();
-                     var type  = $("td", this).eq(2).text();
-                     var pmid =  $("td", this).eq(3).text();
-                     var A_id = $("td", this).eq(6).text();
-                     var B_id = $("td", this).eq(7).text();
-                     //saveButton = $("#saveInteractionButton");
-                     //console.log("saveButton: " + saveButton);
-                     //saveButton.click(function() console.log("save!"));
-                     console.log("A_id: " + A_id);
-                     window.pmid = pmid;
-                     console.log("pmid ? " + pmid)
+    text <-  '<script>
+var geneTextBox  = $("#genes");
+var providerSelector = $("#providers");
+var goButton  = $("#goButton");
 
-                     $("#hiddenPmidDiv").html(pmid)
-                     Shiny.onInputChange("hiddenPmidDiv", pmid);
+assessGoButtonReadiness = function() {
+   var gotPossibleGeneName = geneTextBox.val().length > 1;
+   var gotProvider = providerSelector.val() != null
+   if(gotPossibleGeneName & gotProvider)
+      goButton.prop("disabled", false);
+   else
+      goButton.prop("disabled", true);
+   } // assessGoButtonReadiness
 
-                     $("#hiddenGeneADiv").html(Aname)
-                     Shiny.onInputChange("hiddenGeneADiv", Aname);
+geneInputBoxReader = function(e) {
+   console.log("e.keyCode: " + e.keyCode);
+   console.log("length: " + geneTextBox.val().length);
+   assessGoButtonReadiness();
+   }
 
-                     $("#hiddenGeneBDiv").html(Bname)
-                     Shiny.onInputChange("hiddenGeneBDiv", Bname);
+providersReader = function() {
+   assessGoButtonReadiness();
+   }
 
-                     $("#hiddenGeneA_id_Div").html(A_id)
-                     Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
+ $(document).ready(function() {
+    geneTextBox  = $("#genes")
+    providerSelector = $("#providers")
+    goButton  = $("#goButton");
+    goButton.prop("disabled", true);
 
-                     $("#hiddenGeneB_id_Div").html(B_id)
-                     Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
-                     })})
-               </script>'
+    geneTextBox.keydown(geneInputBoxReader);
+    providerSelector.change(providersReader);
+
+    $("#table").on("click", "tr", function () {
+        console.log("table clicked!");
+        var Aname = $("td", this).eq(0).text();
+        var Bname = $("td", this).eq(1).text();
+        var type  = $("td", this).eq(2).text();
+        var pmid =  $("td", this).eq(3).text();
+        var A_id = $("td", this).eq(6).text();
+        var B_id = $("td", this).eq(7).text();
+        //saveButton = $("#saveInteractionButton");
+        //console.log("saveButton: " + saveButton);
+        //saveButton.click(function() console.log("save!"));
+        console.log("A_id: " + A_id);
+        window.pmid = pmid;
+        console.log("pmid ? " + pmid)
+
+        $("#hiddenPmidDiv").html(pmid);
+        $("#hiddenPmidDiv").hide();
+        Shiny.onInputChange("hiddenPmidDiv", pmid);
+
+        $("#hiddenGeneADiv").html(Aname);
+        $("#hiddenGeneADiv").hide();
+        Shiny.onInputChange("hiddenGeneADiv", Aname);
+
+        $("#hiddenGeneBDiv").html(Bname);
+        $("#hiddenGeneBDiv").hide();
+        Shiny.onInputChange("hiddenGeneBDiv", Bname);
+
+        $("#hiddenGeneA_id_Div").html(A_id);
+        $("#hiddenGeneA_id_Div").hide();
+        Shiny.onInputChange("hiddenGeneA_id_Div", A_id);
+
+        $("#hiddenGeneB_id_Div").html(B_id);
+        $("#hiddenGeneB_id_Div").hide();
+        Shiny.onInputChange("hiddenGeneB_id_Div", B_id);
+        })});
+</script>'
 
     return(text)
 

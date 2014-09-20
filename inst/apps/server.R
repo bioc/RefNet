@@ -6,7 +6,7 @@ refnet <- RefNet()
 idMapper <- IDMapper(species="9606")
 
 empty.data.frame <- data.frame(A.name=c(""), B.name=(""), type="", publicationID="", A="", B="",
-                               detectionMethod="", provider="", stringsAsFactors=FALSE)[-1,]
+                               detectionMethod="", provider="", stringsAsFactors=FALSE) # [-1,]
 
 printf <- function(...)print(noquote(sprintf(...)))
 #----------------------------------------------------------------------------------------------------
@@ -69,6 +69,13 @@ shinyServer(function(input, output, session) {
         result
         })
 
+    geneInput <- reactive({
+        printf("entering inputGenes reactive function");
+        result <- input$genes
+        print(result)
+        result
+        })
+
 
     #observe({
     #   if(!is.na(initial.genes))
@@ -78,15 +85,26 @@ shinyServer(function(input, output, session) {
     findInteractions <- reactive({
        input$goButton
        printf("reactive findInteractions running")
+       #genes <- cleanGenes(input$genes)
        genes <- cleanGenes(isolate(input$genes))
-       if(all(nchar(genes) == 0))
-          return()
-       printf("       genes: %s", paste(genes, collapse=","))
-       if(length(genes) == 0)
-           return(empty.data.frame)
-       if(all(nchar(genes) == 0))
-           return(empty.data.frame)
+       if(length(genes) == 0){
+          printf("length(genes) == 0, returning");
+          return(empty.data.frame)
+          }
+       if(all(nchar(genes) == 0)){
+          printf("all(nchar(genes) == 0)), returning");
+          return(empty.data.frame)
+          }
        current.providers <- isolate(input$providers)
+       if(length(current.providers) == 0){
+          printf("length(current.providers) == 0, returning");
+          return(empty.data.frame)
+           }
+       if(all(nchar(current.providers) == 0)){
+          printf("all(nchar(current.providers) == 0)), returning");
+          return(empty.data.frame);
+          }
+
        printf("current.providers: %s", paste(current.providers, collapse=","))
        printf("   providers: %s", paste(current.providers, collapse=","))
        printf("querying for %s from %s", paste(genes, collapse=","), paste(current.providers, collapse=","))
