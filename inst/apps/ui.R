@@ -55,6 +55,16 @@ providersReader = function() {
 
     $("#table").on("click", "tr", function () {
         console.log("table clicked!");
+        //if($(this).hasClass("rowsSelected"))
+        $("tr.rowsSelected").removeClass("rowsSelected")
+        $(this).addClass("rowsSelected");
+        //if ($(this).hasClass("selected")) {
+        //   $(this).removeClass("selected");
+        //   }
+        //else {
+        //  table.$("tr.selected").removeClass("selected");
+        //  $(this).addClass("selected");
+        //  }
         var Aname = $("td", this).eq(0).text();
         var Bname = $("td", this).eq(1).text();
         var type  = $("td", this).eq(2).text();
@@ -105,7 +115,7 @@ rowSelectableDataTable <- function(outputId, ...)
                 href = "shared/datatables/css/DT_bootstrap.css"></link>',
          '<style type="text/css">
                 .rowsSelected td{
-                background-color: rgb(250,0,0) !important}  </style>',
+                background-color: rgb(204,255,204) !important}  </style>',
          '<style type="text/css"> .selectable div table tbody tr{
                 cursor: hand; cursor: pointer;}</style>',
          '<style type="text/css"> .selectable div table tbody tr td{
