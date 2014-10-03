@@ -58,13 +58,6 @@ providersReader = function() {
         //if($(this).hasClass("rowsSelected"))
         $("tr.rowsSelected").removeClass("rowsSelected")
         $(this).addClass("rowsSelected");
-        //if ($(this).hasClass("selected")) {
-        //   $(this).removeClass("selected");
-        //   }
-        //else {
-        //  table.$("tr.selected").removeClass("selected");
-        //  $(this).addClass("selected");
-        //  }
         var Aname = $("td", this).eq(0).text();
         var Bname = $("td", this).eq(1).text();
         var type  = $("td", this).eq(2).text();
