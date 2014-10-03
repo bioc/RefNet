@@ -55,7 +55,6 @@ providersReader = function() {
 
     $("#table").on("click", "tr", function () {
         console.log("table clicked!");
-        //if($(this).hasClass("rowsSelected"))
         $("tr.rowsSelected").removeClass("rowsSelected")
         $(this).addClass("rowsSelected");
         var Aname = $("td", this).eq(0).text();
