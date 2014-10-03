@@ -44,6 +44,8 @@ RefNet <- function()
     object@providers <- list(native=names(object@sources),
                              PSICQUIC=psicquic.providers)
    
+    print(noquote("RefNet ready."))
+    
     object
  
 } # RefNet ctor

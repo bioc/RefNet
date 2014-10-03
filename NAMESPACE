@@ -19,4 +19,5 @@ import(AnnotationHub)
 import(RCurl)
 import(PSICQUIC)
 import(methods)
+import(shiny)
 
