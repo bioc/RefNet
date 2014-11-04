@@ -14,7 +14,7 @@ RefNet <- function()
 
     print(noquote("initializing RefNet from AnnotationHub..."))
     ah <- AnnotationHub()
-    filters(ah) <- list(DataProvider="RefNet")
+    ah <- subset(ah, ah$DataProvider=="RefNet")
     tbl.refnet <- metadata(ah)
     pathnames <- sub("refnet/", "refnet.", tbl.refnet$RDataPath)
     pathnames <- sub("-", ".", pathnames)
