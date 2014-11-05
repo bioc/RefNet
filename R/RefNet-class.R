@@ -15,10 +15,10 @@ RefNet <- function()
     print(noquote("initializing RefNet from AnnotationHub..."))
     ah <- AnnotationHub()
     ah <- subset(ah, ah$dataprovider=="RefNet")
-    tbl.refnet <- metadata(ah)
-    pathnames <- sub("refnet/", "refnet.", tbl.refnet$RDataPath)
+    tbl.refnet <- mcols(ah)
+    pathnames <- sub("refnet/", "refnet.", tbl.refnet$rdatapath)
     pathnames <- sub("-", ".", pathnames)
-    titles <- sub("interactions from ", "", tbl.refnet$Title)
+    titles <- sub("interactions from ", "", tbl.refnet$title)
    
     refnet.tables <- vector('list', length=length(pathnames))
     for(i in seq_len(length(pathnames))){
