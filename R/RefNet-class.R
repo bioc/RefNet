@@ -16,14 +16,15 @@ RefNet <- function()
     ah <- AnnotationHub()
     ah <- subset(ah, ah$dataprovider=="RefNet")
     tbl.refnet <- mcols(ah)
-    pathnames <- sub("refnet/", "refnet.", tbl.refnet$rdatapath)
-    pathnames <- sub("-", ".", pathnames)
     titles <- sub("interactions from ", "", tbl.refnet$title)
-   
-    refnet.tables <- vector('list', length=length(pathnames))
-    for(i in seq_len(length(pathnames))){
-        pathname <- pathnames[[i]]
-        tbl <- ah[[pathname]]
+    count <- length(titles)
+    ah.ids <- rownames(tbl.refnet)
+
+    refnet.tables <- vector('list', length=count)
+    
+    for(i in seq_len(count)){
+        id <- ah.ids[i]
+        tbl <- ah[[id]]
         refnet.tables[[i]] <- tbl
         } # for i
     names(refnet.tables) <- titles
@@ -110,7 +111,6 @@ setMethod('show', 'RefNet',
 
     providers <- provider  # for clarity, make this explicitly plural
    
-
     native.providers <- intersect(providers, providers(object)$native)
 
     for(i in seq_len(length(native.providers))) {
