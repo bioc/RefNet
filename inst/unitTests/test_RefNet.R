@@ -17,14 +17,9 @@ if(!exists("refnet")){
 # our results against.
 
 if(!exists("psicquic")){
-    psicquic <- PSICQUIC()
-    idMapper <- IDMapper("9606")
-    }
-
-if(!is.na(psicquic))
-    if (!exists("tbl.pqDemo"))
-       tbl.pqDemo <- interactions(psicquic, id="CCNG1", species="9606",
-                                   provider="IntAct")
+   psicquic <- PSICQUIC()
+   idMapper <- IDMapper("9606")
+   }
 
 #-------------------------------------------------------------------------------
 paulsTests <- function()
@@ -50,19 +45,25 @@ paulsTests <- function()
 test_ctor <- function()
 {
     print("--- test_ctor")
-    refnet <- RefNet()
+    if(!exists("refnet"))
+       refnet <- RefNet()
+
     providerClasses <-  c("native", "PSICQUIC")
     checkEquals(providerClasses(refnet), providerClasses)
     providers <- providers(refnet)
     checkEquals(names(providers), providerClasses)
        # gerstein-2012  and  hypoxiaSignaling-2006  are the first two entries
        # we made into the  AnnotationHub, so let's check just those.
-    checkTrue(all(c("gerstein-2012", "hypoxiaSignaling-2006") %in% providers(refnet)$native))
-    if(!is.na(refnet@psicquic))
-       checkTrue(length(providers$PSICQUIC) > 10)
+    checkEquals(length(grep("gerstein-2012", providers(refnet)$native)), 1)
+    checkEquals(length(grep("hypoxiaSignaling-2006", providers(refnet)$native)), 1)
+
+    checkTrue(length(providers$PSICQUIC) > 10)
     
 } # test_ctor
 #-------------------------------------------------------------------------------
+# multi-gene queries need to be turned into pairwise queries to PSICQUIC
+# make sure that the internal function which perfomrs this expansion
+# works properly
 test_.combinations <- function()
 {
     print("--- test_.combinations")

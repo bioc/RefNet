@@ -14,8 +14,11 @@ RefNet <- function()
 
     print(noquote("initializing RefNet from AnnotationHub..."))
     ah <- AnnotationHub()
-    filters(ah) <- list(DataProvider="RefNet")
-    tbl.refnet <- metadata(ah)
+    refnet.indices <- grep("refnet", metadata(ah)$RDataPath, ignore.case=TRUE)
+    stopifnot(length(refnet.indices) > 0)
+
+    ah.refnet <- ah[refnet.indices]
+    tbl.refnet <- metadata(ah.refnet)
     pathnames <- sub("refnet/", "refnet.", tbl.refnet$RDataPath)
     pathnames <- sub("-", ".", pathnames)
     titles <- sub("interactions from ", "", tbl.refnet$Title)
@@ -23,7 +26,7 @@ RefNet <- function()
     refnet.tables <- vector('list', length=length(pathnames))
     for(i in seq_len(length(pathnames))){
         pathname <- pathnames[[i]]
-        tbl <- ah[[pathname]]
+        tbl <- ah.refnet[[i]]
         refnet.tables[[i]] <- tbl
         } # for i
     names(refnet.tables) <- titles
