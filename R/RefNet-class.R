@@ -27,13 +27,14 @@ RefNet <- function()
         tbl <- ah[[id]]
         refnet.tables[[i]] <- tbl
         } # for i
-    names(refnet.tables) <- titles
+
+    titles.trimmed <- gsub("\\.tsv.*RData", "", titles)
+    names(refnet.tables) <- titles.trimmed
    
     object <- .RefNet()
     object@psicquic <- psicquic
 
     object@sources <- refnet.tables;
-
   
     suppressWarnings(psicquic.na <- is.na(psicquic))
     
