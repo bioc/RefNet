@@ -374,3 +374,4 @@ test_.filterOnColumnValue <- function()
     
 } # test_.filterOnColumnValue
 #-------------------------------------------------------------------------------
+if(!interactive()) paulsTests()
