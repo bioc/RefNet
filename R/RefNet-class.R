@@ -252,7 +252,7 @@ setMethod ("interactions", "RefNet",
 #-------------------------------------------------------------------------------
 pubmedAbstract <- function (pmid, split=TRUE)
 {
-    p2 = "http://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id="
+    p2 = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=pubmed&id="
     p3 = pmid
     p4 = "&retmode=text&rettype=abstract"
     p5 = "&email=pshannon@fhcrc.org"          # TODO -- generalize this
