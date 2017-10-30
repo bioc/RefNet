@@ -2,7 +2,7 @@ Package: RefNet
 Type: Package
 Title: A queryable collection of molecular interactions, from many
         sources
-Version: 1.14.0
+Version: 1.15.0
 Date: 2016-12-06
 Author: Paul Shannon
 Maintainer: Paul Shannon <pshannon@systemsbiology.org>
