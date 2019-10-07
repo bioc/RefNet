@@ -21,10 +21,11 @@ if(!exists("psicquic")){
     idMapper <- IDMapper("9606")
     }
 
-if(!is.na(psicquic))
-    if (!exists("tbl.pqDemo"))
-       tbl.pqDemo <- interactions(psicquic, id="CCNG1", species="9606",
-                                   provider="IntAct")
+if(exists("psicquic"))
+   if (!exists("tbl.pqDemo"))
+      if("IntAct" %in% providers(psicquic))
+         tbl.pqDemo <- interactions(psicquic, id="CCNG1", species="9606",
+                                    provider="IntAct")
 
 #-------------------------------------------------------------------------------
 paulsTests <- function()
@@ -34,17 +35,17 @@ paulsTests <- function()
     test_.combinations()
     test_.findHits()
     test_.filterOnColumnValue()
-    
+
     test_.smartRbind()
     test_interactions()
     test_recon2Interactions()
-    
+
     test_providerMix_PSICQUIC_and_native()
     test_pubmedAbstract()
 
     test_detectDuplicateInteractions()
     test_pickBestFromDupGroup()
-    
+
 } # paulsTests
 #-------------------------------------------------------------------------------
 test_ctor <- function()
@@ -58,9 +59,9 @@ test_ctor <- function()
        # gerstein-2012  and  hypoxiaSignaling-2006  are the first two entries
        # we made into the  AnnotationHub, so let's check just those.
     checkTrue(all(c("gerstein-2012", "hypoxiaSignaling-2006") %in% providers(refnet)$native))
-    if(!is.na(refnet@psicquic))
+    if(class(refnet@psicquic) == "PSICQUIC")
        checkTrue(length(providers$PSICQUIC) > 10)
-    
+
 } # test_ctor
 #-------------------------------------------------------------------------------
 test_.combinations <- function()
@@ -78,20 +79,20 @@ test_.combinations <- function()
     checkTrue(list(c("a", "b")) %in% cabc)
     checkTrue(list(c("a", "c")) %in% cabc)
     checkTrue(list(c("b", "c")) %in% cabc)
-    
+
 
 } # test_.combinations
 #-------------------------------------------------------------------------------
 test_.findHits <- function()
 {
     print("--- test_.findHits")
-    
+
     tbl <- refnet@sources[["gerstein-2012"]]
     gerstein.colnames <- list("A", "B", "A.common", "B.common", "altA", "altB",
                               "A.canonical", "B.canonical")
 
       # make sure that case is ignored
-    
+
     upper.case.count <- length(RefNet:::.findHits(tbl, gerstein.colnames, "MYC"))
     checkTrue(upper.case.count > 700)
     checkEquals(length(RefNet:::.findHits(tbl, gerstein.colnames, "myc")),
@@ -107,15 +108,15 @@ test_.findHits <- function()
 
        # now just AVP, which is mentioned only as a TF target in gerstein,
        # not as a TF, thus not found in tbl$a.sym, only in tbl$b.sym
-    
+
     hits.avp <- RefNet:::.findHits(tbl, gerstein.colnames, "AVP")
     checkEquals(length(hits.avp), 9)
     checkEquals(unique(tbl$B[hits.avp]), "AVP")
     checkEquals(length(grep("AVP", tbl$B.common)), 9)
     checkEquals(length(grep("AVP", tbl$A.common)), 0)
-    
+
        # now just ESR1, which is mentioned as both a TF and a target in gerstein
-    
+
     hits.esr1 <- RefNet:::.findHits(tbl, gerstein.colnames, "ESR1")
     checkEquals(length(hits.esr1), 127)
        # we know by inspection that there are no self-loops reported for ESR1
@@ -176,13 +177,13 @@ test_interactions <- function()
     suppressMessages(checkException(
             interactions(refnet, id="JUN", species="9606",
                          provider="bogusProvider"), silent=TRUE))
-    
+
     tbl <- interactions(refnet, id="JUN",
                         provider=c("hypoxiaSignaling-2006"),
                         species="9606")
     hypoxia.rows <- nrow(tbl)
     checkTrue(hypoxia.rows == 1)
-    
+
     tbl <- interactions(refnet, id="JUN",
                         provider=c("gerstein-2012", "hypoxiaSignaling-2006"),
                         species="9606")
@@ -196,7 +197,7 @@ test_recon2Interactions <- function()
     print("--- test_recon2Interactions")
     if(!"recon2" %in% providers(refnet))
         return()
-    
+
     tbl <- interactions(refnet, id="SHMT1", species="9606", type="modifies",
                         provider="recon2")
     checkEquals(tbl$A, c("_6470_1_c","_6470_2_c","_6470_2_c","_6470_1_c"))
@@ -218,38 +219,38 @@ test_recon2Interactions <- function()
     tbl <- interactions(refnet, id="R_GHMT3", type="modifies", provider="recon2")
     checkEquals(nrow(tbl), 2)
     checkEquals(tbl$type, c("modifies", "modifies"))
-    
+
     tbl <- interactions(refnet, id="R_GHMT3", type="substrateOf",
                         provider="recon2")
     checkEquals(nrow(tbl), 2)
     checkEquals(tbl$type, c("substrateOf", "substrateOf"))
-    
+
     tbl <- interactions(refnet, id="R_GHMT3", type="productOf",
                         provider="recon2")
     checkEquals(nrow(tbl), 2)
     checkEquals(tbl$type, c("productOf", "productOf"))
-    
+
     tbl <- interactions(refnet, id="R_GHMT3", type=c("productOf", "substrateOf"),
                         provider="recon2")
     checkEquals(nrow(tbl), 4)
     checkEquals(sort(tbl$type), c("productOf", "productOf",
                                   "substrateOf", "substrateOf"))
-    
+
 } # test_recon2Interactions
 #-------------------------------------------------------------------------------
-# demonstrate mixing PSICQUIC sources with RefNet "native" 
+# demonstrate mixing PSICQUIC sources with RefNet "native"
 test_providerMix_PSICQUIC_and_native <- function()
 {
     print("--- test_providerMix_PSICQUIC_and_native")
 
-    if(is.na(refnet@psicquic))
+    if(class(refnet@psicquic) == "logical")  # detects NA
         return()
-    
+
     if(!"BioGrid" %in% providers(refnet)$PSICQUIC){
         print("  BioGrid not available, skipping test")
         return()
         }
-    
+
     tbl.1 <- interactions(refnet, "TERT", provider="gerstein-2012")
     tbl.2 <- interactions(refnet, "TERT", provider="BioGrid")
     tbl.3 <- interactions(refnet, "TERT", provider=c("BioGrid", "gerstein-2012"))
@@ -272,7 +273,7 @@ test_pubmedAbstract <- function()
                    "regulatory networks")
     checkEquals(grep(title, text.lines), 5)
 
-    
+
 } # test_pubmedAbstract
 #-------------------------------------------------------------------------------
 test_detectDuplicateInteractions <- function()
@@ -308,7 +309,7 @@ test_detectDuplicateInteractions <- function()
                                    grep("^-$", B.canonical))))
     if(length(removers) > 0)
         tbl <- tbl[-removers,]
-    
+
     tbl.dups <- detectDuplicateInteractions(tbl)
     checkTrue(ncol(tbl.dups) > ncol(tbl))
     checkTrue("dupGroup" %in% colnames(tbl.dups))
@@ -317,7 +318,7 @@ test_detectDuplicateInteractions <- function()
     checkEquals(sum(as.integer(table(tbl.dups$dupGroup))), nrow(tbl))
        # 309 interactions are singletons
     checkEquals(nrow(subset(tbl.dups, dupGroup==0)), 309)
-    
+
 } # test_detectDuplicateInteractions
 #-------------------------------------------------------------------------------
 test_pickBestFromDupGroup <- function()
@@ -330,7 +331,7 @@ test_pickBestFromDupGroup <- function()
        # of the a-b/b-a interactions which have NO duplicates
        # if the are of the correct type, we want to keep them all
        # this tbl.dups has two singletons, both of approved types
-    
+
     dupGroups <- sort(unique(tbl.dups$dupGroup))   # 0, 1, 2, 3, 4
     preferred.types <- c("direct", "physical", "aggregation")
     singleton.rows <- pickBestFromDupGroup(0, tbl.dups, preferred.types)
@@ -341,13 +342,13 @@ test_pickBestFromDupGroup <- function()
 
        # now check dupGroup 3, which has 23 (!) entries
     checkEquals(nrow(subset(tbl.dups, dupGroup==3)), 23)
-    
+
     rowName.best <- pickBestFromDupGroup(3, tbl.dups, preferred.types)
        # "physical" matches "physical interaction" and is the best of the 23
        # there are 3 with that interaction type: "12", "13", "42".
        # we pick the first
     checkEquals(rowName.best, "12")
-    
+
 } # test_pickBestFromDupGroup
 #-------------------------------------------------------------------------------
 # 'type' is a standard column in all of our interaction sources.  here we
@@ -360,7 +361,7 @@ test_.filterOnColumnValue <- function()
     provider <- "hypoxiaSignaling-2006"
     checkTrue(provider %in% unlist(providers(refnet), use.names=FALSE))
     tbl <- refnet@sources[[provider]]
-    
+
     checkEquals(nrow(RefNet:::.filterOnColumnValue(tbl, "b.modification",
                                                    "hydroxylated")), 1)
     checkEquals(nrow(RefNet:::.filterOnColumnValue(tbl, "b.modification",
@@ -371,6 +372,6 @@ test_.filterOnColumnValue <- function()
     checkEquals(nrow(RefNet:::.filterOnColumnValue(tbl, "B.common", "VEGFA")), 5)
     checkEquals(nrow(RefNet:::.filterOnColumnValue(tbl, "B.common", "HIF1A")), 5)
     checkEquals(nrow(RefNet:::.filterOnColumnValue(tbl, "B.common", "KDR")), 1)
-    
+
 } # test_.filterOnColumnValue
 #-------------------------------------------------------------------------------
